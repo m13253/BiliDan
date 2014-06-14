@@ -55,8 +55,8 @@ APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 def biligrab(url, *, oversea=False):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
-    url_get_comment = 'http://comment.bilibili.tv/%(cid)s.xml'
-    url_get_media = 'http://interface.bilibili.tv/playurl?cid=%(cid)s' if not oversea else 'http://interface.bilibili.cn/v_cdn_play?cid=%(cid)s'
+    url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
+    url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not oversea else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
     regex_match = regex.match(url)
     if not regex_match:
         logging.error('Invalid URL: %s' % url)
@@ -92,7 +92,7 @@ def biligrab(url, *, oversea=False):
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
     logging.info('Invoking media player...')
     command_line = ['mpv', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls
-    logging.info(' '.join(i if ' ' not in i else '\''+i+'\'' for i in command_line))
+    logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line))
     player_process = subprocess.Popen(command_line)
     player_process.wait()
     comment_out.close()
@@ -150,7 +150,7 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--oversea', action='store_true', help='Enable bilibili oversea proxy')
+    parser.add_argument('-o', '--oversea', action='store_true', help='Enable oversea proxy for user outside China')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/av*)')
     args = parser.parse_args()
     if not checkenv():

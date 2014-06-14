@@ -31,7 +31,7 @@ import zlib
 
 
 USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
-APPKEY = '876fe0ebd0e67a0f'  # The same key used in original Biligrab
+APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
 def biligrab(url, *, oversea=False):

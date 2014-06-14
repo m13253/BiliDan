@@ -20,6 +20,7 @@ import gzip
 import json
 import io
 import logging
+import math
 import os
 import re
 import subprocess
@@ -34,7 +35,7 @@ APPKEY = '876fe0ebd0e67a0f'  # The same key used in original Biligrab
 
 
 def biligrab(url, *, oversea=False):
-    regex = re.compile('http:/*[^/]+/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
+    regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.tv/%(cid)s.xml'
     url_get_media = 'http://interface.bilibili.tv/playurl?cid=%(cid)s' if not oversea else 'http://interface.bilibili.cn/v_cdn_play?cid=%(cid)s'
@@ -60,13 +61,17 @@ def biligrab(url, *, oversea=False):
         raise ValueError('Can not get valid media URLs')
     video_size = getvideosize(media_urls[0])
     logging.info('Video size: %sx%s' % video_size)
-    video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
+    if video_size[0] > 0 and video_size[1] > 0:
+        video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
+    else:
+        logging.error('Can not get video size')
+        video_size = (1920, 1080)
     logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid})
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
     logging.info('Calling Danmaku2ASS, converting to %s' % comment_out.name)
-    danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=video_size[1]/21.6)
+    danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
     logging.info('Invoking media player...')
     player_process = subprocess.Popen(['mpv', '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls)
     player_process.wait()

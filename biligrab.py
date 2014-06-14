@@ -90,6 +90,7 @@ def biligrab(url, *, oversea=False):
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
     logging.info('Calling Danmaku2ASS, converting to %s' % comment_out.name)
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
+    comment_out.flush()
     logging.info('Invoking media player...')
     command_line = ['mpv', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls
     logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line))

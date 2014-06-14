@@ -60,6 +60,7 @@ def biligrab(url, *, oversea=False):
     regex_match = regex.match(url)
     if not regex_match:
         logging.error('Invalid URL: %s' % url)
+        return 2
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')

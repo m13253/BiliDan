@@ -17,7 +17,7 @@ Example
 -----
 
 ```
-./biligrab.py http://www.bilibili.tv/video/av9/
+./biligrab.py http://www.bilibili.tv/video/av899574/
 ```
 
 

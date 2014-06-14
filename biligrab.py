@@ -52,11 +52,11 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, oversea=False):
+def biligrab(url, *, overseas=False):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
-    url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not oversea else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
+    url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
     regex_match = regex.match(url)
     if not regex_match:
         logging.error('Invalid URL: %s' % url)
@@ -152,7 +152,7 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-o', '--oversea', action='store_true', help='Enable oversea proxy for user outside China')
+    parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/av*)')
     args = parser.parse_args()
     if not checkenv():
@@ -160,7 +160,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, oversea=args.oversea)
+            retval = retval or biligrab(url, overseas=args.overseas)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

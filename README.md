@@ -19,7 +19,7 @@ Example
 ```
 ./biligrab.py http://www.bilibili.tv/video/av899574/
 ```
-Use option `--oversea` if your are outside China.
+Use option `--overseas` if your are outside China.
 
 
 License

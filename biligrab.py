@@ -60,7 +60,7 @@ def biligrab(url, *, overseas=False):
     regex_match = regex.match(url)
     if not regex_match:
         logging.error('Invalid URL: %s' % url)
-        return 2
+        return 1
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')
@@ -156,7 +156,7 @@ def main():
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/av*)')
     args = parser.parse_args()
     if not checkenv():
-        return 1
+        return 2
     retval = 0
     for url in args.url:
         try:

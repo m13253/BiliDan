@@ -43,6 +43,7 @@ def biligrab(url, *, oversea=False):
         logging.error('Invalid URL: %s' % url)
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
+    logging.info('Loading video info...')
     _, resp_cid = urlfetch(url_get_cid % {'appkey': APPKEY, 'aid': aid, 'pid': pid})
     try:
         cid = dict.get(json.loads(resp_cid.decode('utf-8', 'replace')), 'cid')
@@ -50,7 +51,8 @@ def biligrab(url, *, oversea=False):
             raise ValueError
     except (TypeError, ValueError):
         raise ValueError('Can not get \'cid\' from %s' % url)
-    logging.info('cid = %s' % cid)
+    logging.info('Got video cid: %s' % cid)
+    logging.info('Loading video content...')
     _, resp_media = urlfetch(url_get_media % {'cid': cid})
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url') for k in j.childNodes if k.nodeType == 4]
     logging.info('Media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
@@ -58,12 +60,15 @@ def biligrab(url, *, oversea=False):
         raise ValueError('Can not get valid media URLs')
     video_size = getvideosize(media_urls[0])
     logging.info('Video size: %sx%s' % video_size)
+    video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
+    logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid})
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
-    logging.info('Calling Danmaku2ASS, output to %s' % comment_out.name)
+    logging.info('Calling Danmaku2ASS, converting to %s' % comment_out.name)
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=video_size[1]/21.6)
-    player_process = subprocess.Popen(['mpv', '--ass', '--sub', comment_out.name, '--merge-files', '--no-aspect']+media_urls)
+    logging.info('Invoking media player...')
+    player_process = subprocess.Popen(['mpv', '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls)
     player_process.wait()
     comment_out.close()
     return player_process.returncode
@@ -85,7 +90,7 @@ def urlfetch(url):
 
 
 def getvideosize(url):
-    ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user_agent', USER_AGENT, '-loglevel', 'repeat+warning', url]
+    ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user_agent', USER_AGENT, '-loglevel', 'repeat+error', url]
     ffprobe_output = json.loads(subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE).communicate()[0].decode('utf-8', 'replace'))
     width, height, widthxheight = 0, 0, 0
     for stream in dict.get(ffprobe_output, 'streams'):

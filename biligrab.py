@@ -55,7 +55,7 @@ def biligrab(url, *, oversea=False):
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
     _, resp_media = urlfetch(url_get_media % {'cid': cid})
-    media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url') for k in j.childNodes if k.nodeType == 4]
+    media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
     logging.info('Media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:
         raise ValueError('Can not get valid media URLs')
@@ -73,7 +73,9 @@ def biligrab(url, *, oversea=False):
     logging.info('Calling Danmaku2ASS, converting to %s' % comment_out.name)
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
     logging.info('Invoking media player...')
-    player_process = subprocess.Popen(['mpv', '--http-header-fields', 'User-Agent: '+USER_AGENT, '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls)
+    command_line = ['mpv', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--ass', '--sub', comment_out.name, '--merge-files', '--autofit', '950x540', '--no-aspect']+media_urls
+    logging.info(' '.join(i if ' ' not in i else '\''+i+'\'' for i in command_line))
+    player_process = subprocess.Popen(command_line)
     player_process.wait()
     comment_out.close()
     return player_process.returncode

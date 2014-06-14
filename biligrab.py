@@ -6,7 +6,7 @@
 # Author: StarBrilliant https://github.com/m13253
 # 
 # Licensed under MIT licence
-# Danmaku2ASS has grant license for Biligrab
+# Danmaku2ASS has granted license to Biligrab
 # 
 # Copyright (c) 2014
 # 

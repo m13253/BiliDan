@@ -175,7 +175,6 @@ def main():
     for url in args.url:
         try:
             retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas, mpvflags=args.mpvflags.split(), d2aflags=dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {})
-        except Exception: raise
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

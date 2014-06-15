@@ -44,6 +44,16 @@ Why Biligrab-Danmaku2ASS?
   60 fps on a Intel Core i5 laptop.
 
 
+Tips
+----
+
+- Use key V to switch comment visibility.
+- If your computer is not fast enough, try `--mpvflags '--framedrop no'`.
+- Use `-d2aflags 'text_opacity=0.8'` to tweak comment opacity.
+- Try to fast forward or rewind when streaming is stuck, or to tweak cache
+  parameters of mpv.
+
+
 License
 -------
 

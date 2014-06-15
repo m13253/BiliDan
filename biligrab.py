@@ -52,7 +52,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, cookie=None, overseas=False):
+def biligrab(url, *, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -94,10 +94,15 @@ def biligrab(url, *, cookie=None, overseas=False):
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
     logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
-    danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
+    d2aflags = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6)}, **d2aflags)
+    for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration'), float)):
+        for k in i:
+            if k in d2aflags:
+                d2aflags[k] = j(d2aflags[k])
+    danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2aflags)
     comment_out.flush()
     logging.info('Launching media player...')
-    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'yes', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=60"']+media_urls
+    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'yes', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=60"']+mpvflags+media_urls
     logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line)+'\n')
     player_process = subprocess.Popen(command_line)
     player_process.wait()
@@ -160,6 +165,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-c', '--cookie', help='Import Cookies at bilibili.tv, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
+    parser.add_argument('--mpvflags', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
+    parser.add_argument('--d2aflags', '--danmaku2assflags', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/av*)')
     args = parser.parse_args()
     if not checkenv():
@@ -167,7 +174,8 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas)
+            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas, mpvflags=args.mpvflags.split(), d2aflags=dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {})
+        except Exception: raise
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

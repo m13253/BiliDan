@@ -163,7 +163,7 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-c', '--cookie', help='Import Cookies at bilibili.tv, type document.cookie at JavaScript console to acquire it')
+    parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.tv, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
     parser.add_argument('--d2aflags', '--danmaku2assflags', metavar='FLAGS', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')

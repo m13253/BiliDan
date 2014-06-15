@@ -171,10 +171,12 @@ def main():
     args = parser.parse_args()
     if not checkenv():
         return 2
+    mpvflags = args.mpvflags.split()
+    d2aflags = dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {}
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas, mpvflags=args.mpvflags.split(), d2aflags=dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {})
+            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

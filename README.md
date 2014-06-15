@@ -38,7 +38,10 @@ Why Biligrab-Danmaku2ASS?
 - Flash consumes too much energy. Flash causes a burning laptop.
 - Experiments show that Danmaku2ASS renders a lot faster than the native
   Bilibili player and even similar software such as
-  [ABPlayerHTML5](https://github.com/jabbany/ABPlayerHTML5), thanks to libass.
+  [ABPlayerHTML5](https://github.com/jabbany/ABPlayerHTML5). Thanks to libass,
+  Danmaku2ASS has passed a
+  [extreme density test](http://www.bilibili.tv/video/av332732/index_7.html) at
+  60 fps on a Intel Core i5 laptop.
 
 
 License

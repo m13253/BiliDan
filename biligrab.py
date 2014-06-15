@@ -102,7 +102,7 @@ def biligrab(url, *, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2aflags)
     comment_out.flush()
     logging.info('Launching media player...')
-    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=60"']+mpvflags+media_urls
+    command_line = ['mpv', '--ass', '--autofit', '950x540', '--autosync', '1', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=60"']+mpvflags+media_urls
     logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line)+'\n')
     player_process = subprocess.Popen(command_line)
     player_process.wait()

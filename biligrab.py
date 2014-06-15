@@ -5,8 +5,8 @@
 # Author: Beining@ACICFG https://github.com/cnbeining
 # Author: StarBrilliant https://github.com/m13253
 # 
-# Licensed under MIT licence
-# Danmaku2ASS has granted license to Biligrab
+# Biligrab is licensed under MIT licence
+# Permission has been granted for the use of Danmaku2ASS in Biligrab
 # 
 # Copyright (c) 2014
 # 

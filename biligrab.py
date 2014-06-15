@@ -52,7 +52,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, overseas=False):
+def biligrab(url, *, cookie=None, overseas=False):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -64,16 +64,19 @@ def biligrab(url, *, overseas=False):
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')
-    _, resp_cid = urlfetch(url_get_cid % {'appkey': APPKEY, 'aid': aid, 'pid': pid})
+    _, resp_cid = urlfetch(url_get_cid % {'appkey': APPKEY, 'aid': aid, 'pid': pid}, cookie=cookie)
     try:
-        cid = dict.get(json.loads(resp_cid.decode('utf-8', 'replace')), 'cid')
+        resp_cid = dict(json.loads(resp_cid.decode('utf-8', 'replace')))
+        cid = resp_cid.get('cid')
         if not cid:
+            if 'error' in resp_cid:
+                logging.error('Error message: %s' % resp_cid.get('error'))
             raise ValueError
     except (TypeError, ValueError):
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
-    _, resp_media = urlfetch(url_get_media % {'cid': cid})
+    _, resp_media = urlfetch(url_get_media % {'cid': cid}, cookie=cookie)
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:
@@ -87,7 +90,7 @@ def biligrab(url, *, overseas=False):
         logging.error('Can not get video size. Comments may be wrongly positioned.')
         video_size = (1920, 1080)
     logging.info('Loading comments...')
-    _, resp_comment = urlfetch(url_get_comment % {'cid': cid})
+    _, resp_comment = urlfetch(url_get_comment % {'cid': cid}, cookie=cookie)
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
     logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
@@ -102,8 +105,10 @@ def biligrab(url, *, overseas=False):
     return player_process.returncode
 
 
-def urlfetch(url):
+def urlfetch(url, *, cookie=None):
     req_headers = {'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate'}
+    if cookie:
+        req_headers['Cookie'] = cookie
     req = urllib.request.Request(url=url, headers=req_headers)
     response = urllib.request.urlopen(req, timeout=120)
     content_encoding = response.info().get('Content-Encoding')
@@ -153,6 +158,7 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
+    parser.add_argument('-c', '--cookie', help='Import Cookies at bilibili.tv, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/av*)')
     args = parser.parse_args()
@@ -161,7 +167,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, overseas=args.overseas)
+            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

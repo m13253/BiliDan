@@ -75,26 +75,27 @@ def biligrab(url, *, overseas=False):
     logging.info('Loading video content...')
     _, resp_media = urlfetch(url_get_media % {'cid': cid})
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
-    logging.info('Media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+    logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:
-        raise ValueError('Can not get valid media URLs')
+        raise ValueError('Can not get valid media URLs.')
+    logging.info('Determining video resolution...')
     video_size = getvideosize(media_urls[0])
-    logging.info('Video size: %sx%s' % video_size)
+    logging.info('Video resolution: %sx%s' % video_size)
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
     else:
-        logging.error('Can not get video size')
+        logging.error('Can not get video size. Comments may be wrongly positioned.')
         video_size = (1920, 1080)
     logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid})
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
-    logging.info('Calling Danmaku2ASS, converting to %s' % comment_out.name)
+    logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
     danmaku2ass.Danmaku2ASS([comment_in], comment_out, video_size[0], video_size[1], font_face='SimHei', font_size=math.ceil(video_size[1]/21.6))
     comment_out.flush()
-    logging.info('Invoking media player...')
+    logging.info('Launching media player...')
     command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'yes', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=60"']+media_urls
-    logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line))
+    logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line)+'\n')
     player_process = subprocess.Popen(command_line)
     player_process.wait()
     comment_out.close()

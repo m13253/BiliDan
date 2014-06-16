@@ -52,27 +52,26 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
     url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
     regex_match = regex.match(url)
     if not regex_match:
-        logging.error('Invalid URL: %s' % url)
-        return 1
+        raise ValueError('Invalid URL: %s' % url)
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')
     _, resp_cid = urlfetch(url_get_cid % {'appkey': APPKEY, 'aid': aid, 'pid': pid}, cookie=cookie)
     try:
         resp_cid = dict(json.loads(resp_cid.decode('utf-8', 'replace')))
+        if 'error' in resp_cid:
+            logging.error('Error message: %s' % resp_cid.get('error'))
         cid = resp_cid.get('cid')
-        if not cid:
-            if 'error' in resp_cid:
-                logging.error('Error message: %s' % resp_cid.get('error'))
-            raise ValueError
     except (TypeError, ValueError):
+        raise ValueError('Can not get \'cid\' from %s' % url)
+    if not cid:
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
@@ -87,7 +86,7 @@ def biligrab(url, *, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
     else:
-        logging.error('Can not get video size. Comments may be wrongly positioned.')
+        logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.', debug=debug))
         video_size = (1920, 1080)
     logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid}, cookie=cookie)
@@ -99,7 +98,11 @@ def biligrab(url, *, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
         for k in i:
             if k in d2aflags:
                 d2aflags[k] = j(d2aflags[k])
-    danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2aflags)
+    try:
+        danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2aflags)
+    except Exception as e:
+        logorraise(e)
+        logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
     logging.info('Launching media player...')
     command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=50"']+mpvflags+media_urls
@@ -137,7 +140,7 @@ def getvideosize(url):
                 width, height = dict.get(stream, 'width'), dict.get(stream, 'height')
         return width, height
     except Exception as e:
-        logging.error(e)
+        logorraise(e)
         return 0, 0
 
 
@@ -162,11 +165,19 @@ def checkenv():
     return retval
 
 
+def logorraise(message, debug=False):
+    if debug:
+        raise message
+    else:
+        logging.error(str(message))
+
+
 def main():
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
+    parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.tv, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
@@ -180,13 +191,17 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, cookie=args.cookie, overseas=args.overseas, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, cookie=args.cookie, overseas=args.overseas, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno
+            if args.debug:
+                raise
         except Exception as e:
             logging.error(e)
             retval = retval or 1
+            if args.debug:
+                raise
     return retval
 
 

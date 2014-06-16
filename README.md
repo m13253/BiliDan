@@ -50,6 +50,7 @@ Tips
 - Use key V to switch comment visibility.
 - Some videos require logging in your account. Import your Cookie at bilibili.tv
   with `--cookie` option.
+- If you have difficulties connecting to video server, try `--overseas`.
 - If your computer is not fast enough, try `--mpvflags '--framedrop yes'`.
 - Use `--d2aflags 'text_opacity=0.8'` to set comment opacity.
 - Try to fast forward or rewind when streaming is stuck, or to tweak cache

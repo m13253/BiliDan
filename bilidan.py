@@ -86,7 +86,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, mpvflags=[], d2af
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
     else:
-        logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.', debug=debug))
+        logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
         video_size = (1920, 1080)
     logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid}, cookie=cookie)

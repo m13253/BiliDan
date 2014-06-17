@@ -19,7 +19,9 @@ Example
 -----
 
 ```
-./bilidan.py http://www.bilibili.tv/video/av314/
+./bilidan.py http://www.bilibili.tv/video/av899574/
+./bilidan.py http://www.bilibili.tv/video/av314/     # High density comments!
+./bilidan.py http://www.bilibili.tv/video/av297197/  # Even Toukome (advanced comments)!
 ```
 Use option `--overseas` if your are outside China.
 

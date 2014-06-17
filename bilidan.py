@@ -132,7 +132,7 @@ def urlfetch(url, *, cookie=None):
 
 def getvideosize(url):
     try:
-        ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user_agent', USER_AGENT, '-loglevel', 'repeat+error', url]
+        ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user-agent', USER_AGENT, '-loglevel', 'repeat+error', url]
         ffprobe_output = json.loads(subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE).communicate()[0].decode('utf-8', 'replace'))
         width, height, widthxheight = 0, 0, 0
         for stream in dict.get(ffprobe_output, 'streams') or []:

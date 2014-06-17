@@ -54,7 +54,7 @@ APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 def biligrab(url, *, debug=False, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
-    url_get_cid = 'http://api.bilibili.tv/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
+    url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
     url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
     regex_match = regex.match(url)
@@ -178,11 +178,11 @@ def main():
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
-    parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.tv, type document.cookie at JavaScript console to acquire it')
+    parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
     parser.add_argument('--d2aflags', '--danmaku2assflags', metavar='FLAGS', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')
-    parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.tv/video/av*/)')
+    parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
     args = parser.parse_args()
     if not checkenv():
         return 2

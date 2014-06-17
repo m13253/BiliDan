@@ -1,7 +1,7 @@
 Biligrab-Danmaku2ASS
 ====================
 
-Play videos on Bilibili.tv with Danmaku2ASS
+Play videos on Bilibili.com with Danmaku2ASS
 
 
 Requirements
@@ -19,9 +19,9 @@ Example
 -----
 
 ```
-./bilidan.py http://www.bilibili.tv/video/av899574/
-./bilidan.py http://www.bilibili.tv/video/av314/     # High density comments!
-./bilidan.py http://www.bilibili.tv/video/av297197/  # Even Toukome (advanced comments)!
+./bilidan.py http://www.bilibili.com/video/av899574/
+./bilidan.py http://www.bilibili.com/video/av314/     # High density comments!
+./bilidan.py http://www.bilibili.com/video/av297197/  # Even Toukome (advanced comments)!
 ```
 Use option `--overseas` if your are outside China.
 
@@ -42,7 +42,7 @@ Why Biligrab-Danmaku2ASS?
   Bilibili player and even similar software such as
   [ABPlayerHTML5](https://github.com/jabbany/ABPlayerHTML5). Thanks to libass,
   Danmaku2ASS has passed a
-  [extreme density test](http://www.bilibili.tv/video/av332732/index_7.html) at
+  [extreme density test](http://www.bilibili.com/video/av332732/index_7.html) at
   60 fps on a Intel Core i5 laptop.
 
 

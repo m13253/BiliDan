@@ -19,7 +19,7 @@ Example
 -----
 
 ```
-./bilidan.py http://www.bilibili.tv/video/av899574/
+./bilidan.py http://www.bilibili.tv/video/av314/
 ```
 Use option `--overseas` if your are outside China.
 

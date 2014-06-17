@@ -12,14 +12,14 @@ Requirements
   Biligrab-Danmaku2ASS requires
 - [FFmpeg](https://www.ffmpeg.org/) with ffprobe installed
 - [Danmaku2ASS](https://github.com/m13253/danmaku2ass), put `danmaku2ass.py`
-  the same directory as `biligrab.py`
+  the same directory as `bilidan.py`
 
 
 Example
 -----
 
 ```
-./biligrab.py http://www.bilibili.tv/video/av899574/
+./bilidan.py http://www.bilibili.tv/video/av899574/
 ```
 Use option `--overseas` if your are outside China.
 

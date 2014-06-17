@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-# Biligrab
+# Biligrab-Danmaku2ASS
 #
 # Author: Beining@ACICFG https://github.com/cnbeining
 # Author: StarBrilliant https://github.com/m13253

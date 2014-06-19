@@ -52,11 +52,11 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, debug=False, cookie=None, overseas=False, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
-    url_get_media = 'http://interface.bilibili.com/playurl?cid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?cid=%(cid)s'
+    url_get_media = 'http://interface.bilibili.com/playurl?%(args)scid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?%(args)scid=%(cid)s'
     regex_match = regex.match(url)
     if not regex_match:
         raise ValueError('Invalid URL: %s' % url)
@@ -75,7 +75,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, mpvflags=[], d2af
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
-    _, resp_media = urlfetch(url_get_media % {'cid': cid}, cookie=cookie)
+    _, resp_media = urlfetch(url_get_media % {'cid': cid, 'args': 'quality=%s&' % quality if quality is not None else ''}, cookie=cookie)
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:
@@ -179,19 +179,22 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
-    parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for user outside China')
+    parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for users outside China')
+    parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
+    parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
     parser.add_argument('--d2aflags', '--danmaku2assflags', metavar='FLAGS', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
     args = parser.parse_args()
     if not checkenv():
         return 2
+    quality = args.quality if args.quality is not None else 4 if args.hd else None
     mpvflags = args.mpvflags.split()
     d2aflags = dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {}
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, cookie=args.cookie, overseas=args.overseas, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

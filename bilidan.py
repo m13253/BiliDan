@@ -108,7 +108,11 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
     command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=50"']+mpvflags+media_urls
     logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line)+'\n')
     player_process = subprocess.Popen(command_line)
-    player_process.wait()
+    try:
+        player_process.wait()
+    except KeyboardInterrupt:
+        player_process.terminate()
+        raise
     comment_out.close()
     return player_process.returncode
 
@@ -133,7 +137,12 @@ def urlfetch(url, *, cookie=None):
 def getvideosize(url):
     try:
         ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user-agent', USER_AGENT, '-loglevel', 'repeat+error', url]
-        ffprobe_output = json.loads(subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE).communicate()[0].decode('utf-8', 'replace'))
+        ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
+        try:
+            ffprobe_output = json.loads(ffprobe_process.communicate()[0].decode('utf-8', 'replace'))
+        except KeyboardInterrupt:
+            logging.warning('Cancelling getting video size, press Ctrl-C again to terminate.')
+            return 0, 0
         width, height, widthxheight = 0, 0, 0
         for stream in dict.get(ffprobe_output, 'streams') or []:
             if dict.get(stream, 'width')*dict.get(stream, 'height') > widthxheight:

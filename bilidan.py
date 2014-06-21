@@ -52,7 +52,7 @@ USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 
 APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
 
 
-def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -81,7 +81,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
     if len(media_urls) == 0:
         raise ValueError('Can not get valid media URLs.')
     logging.info('Determining video resolution...')
-    video_size = getvideosize(media_urls[0])
+    video_size = getvideosize(media_urls[0], verbose=verbose)
     logging.info('Video resolution: %sx%s' % video_size)
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
@@ -105,7 +105,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
         logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
     logging.info('Launching media player...')
-    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=50"']+mpvflags+media_urls
+    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"']+mpvflags+media_urls
     logcommand(command_line)
     player_process = subprocess.Popen(command_line)
     try:
@@ -144,9 +144,9 @@ def urlfetch(url, *, cookie=None):
     return response, data
 
 
-def getvideosize(url):
+def getvideosize(url, verbose=False):
     try:
-        ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user-agent', USER_AGENT, '-loglevel', 'repeat+error', url]
+        ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user-agent', USER_AGENT, '-loglevel', 'repeat+warning' if verbose else 'repeat+error', url]
         logcommand(ffprobe_command)
         ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
         try:
@@ -220,7 +220,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

@@ -43,6 +43,7 @@ import os
 import re
 import subprocess
 import tempfile
+import time
 import urllib.request
 import xml.dom.minidom
 import zlib
@@ -111,7 +112,10 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
     try:
         player_process.wait()
     except KeyboardInterrupt:
+        logging.info('Terminating media player...')
         player_process.terminate()
+        time.sleep(2)
+        player_process.kill()
         raise
     comment_out.close()
     return player_process.returncode
@@ -144,6 +148,7 @@ def getvideosize(url):
             ffprobe_output = json.loads(ffprobe_process.communicate()[0].decode('utf-8', 'replace'))
         except KeyboardInterrupt:
             logging.warning('Cancelling getting video size, press Ctrl-C again to terminate.')
+            ffprobe_process.terminate()
             return 0, 0
         width, height, widthxheight = 0, 0, 0
         for stream in dict.get(ffprobe_output, 'streams') or []:

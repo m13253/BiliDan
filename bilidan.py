@@ -106,7 +106,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
     comment_out.flush()
     logging.info('Launching media player...')
     command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=50"']+mpvflags+media_urls
-    logging.info(' '.join('\''+i+'\'' if ' ' in i or '&' in i else i for i in command_line)+'\n')
+    logcommand(command_line)
     player_process = subprocess.Popen(command_line)
     try:
         player_process.wait()
@@ -118,6 +118,7 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
 
 
 def urlfetch(url, *, cookie=None):
+    logging.debug('Fetch: %s' % url)
     req_headers = {'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate'}
     if cookie:
         req_headers['Cookie'] = cookie
@@ -137,6 +138,7 @@ def urlfetch(url, *, cookie=None):
 def getvideosize(url):
     try:
         ffprobe_command = ['ffprobe', '-show_streams', '-select_streams', 'v', '-print_format', 'json', '-user-agent', USER_AGENT, '-loglevel', 'repeat+error', url]
+        logcommand(ffprobe_command)
         ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
         try:
             ffprobe_output = json.loads(ffprobe_process.communicate()[0].decode('utf-8', 'replace'))
@@ -174,6 +176,10 @@ def checkenv():
     return retval
 
 
+def logcommand(command_line):
+    logging.debug('Executing: '+' '.join('\''+i+'\'' if ' ' in i or '&' in i or '"' in i else i for i in command_line))
+
+
 def logorraise(message, debug=False):
     if debug:
         raise message
@@ -182,7 +188,6 @@ def logorraise(message, debug=False):
 
 
 def main():
-    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.INFO)
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
@@ -190,11 +195,13 @@ def main():
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for users outside China')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
     parser.add_argument('--d2aflags', '--danmaku2assflags', metavar='FLAGS', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
     args = parser.parse_args()
+    logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
     if not checkenv():
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None

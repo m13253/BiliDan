@@ -43,7 +43,6 @@ import os
 import re
 import subprocess
 import tempfile
-import time
 import urllib.request
 import xml.dom.minidom
 import zlib
@@ -113,9 +112,15 @@ def biligrab(url, *, debug=False, cookie=None, overseas=False, quality=None, mpv
         player_process.wait()
     except KeyboardInterrupt:
         logging.info('Terminating media player...')
-        player_process.terminate()
-        time.sleep(2)
-        player_process.kill()
+        try:
+            player_process.terminate()
+            try:
+                player_process.wait(timeout=2)
+            except subprocess.TimeoutExpired:
+                logging.info('Killing media player by force...')
+                player_process.kill()
+        except Exception:
+            pass
         raise
     comment_out.close()
     return player_process.returncode

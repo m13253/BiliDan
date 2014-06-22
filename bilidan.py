@@ -105,7 +105,7 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
         logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
     logging.info('Launching media player...')
-    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"']+mpvflags+media_urls
+    command_line = ['mpv', '--ass', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-aspect', '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']+mpvflags+media_urls
     logcommand(command_line)
     player_process = subprocess.Popen(command_line)
     try:

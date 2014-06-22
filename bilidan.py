@@ -105,7 +105,8 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
         logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
     logging.info('Launching media player...')
-    command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--video-aspect', '0', '--sub-ass', '--sub-file', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']+mpvflags+media_urls
+    mpv_version_gt_0_3_11 = checkenv.mpv_version > '0.3.11-'
+    command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-video-aspect' if mpv_version_gt_0_3_11 else '--no-aspect', '--sub-ass' if mpv_version_gt_0_3_11 else '--ass', '--sub-file' if mpv_version_gt_0_3_11 else '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']+mpvflags+media_urls
     logcommand(command_line)
     player_process = subprocess.Popen(command_line)
     try:
@@ -165,7 +166,7 @@ def getvideosize(url, verbose=False):
         return 0, 0
 
 
-def checkenv():
+def checkenv(debug=False):
     global danmaku2ass, requests
     retval = True
     try:
@@ -174,7 +175,16 @@ def checkenv():
         logging.error('Please download \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py')))
         retval = False
     try:
-        subprocess.Popen(('mpv', '-V'), stdout=subprocess.DEVNULL)
+        mpv_process = subprocess.Popen(('mpv', '--msglevel=all=no:cplayer=info', '--version'), stdout=subprocess.PIPE)
+        mpv_output = mpv_process.communicate()[0].decode('utf-8', 'replace').splitlines()
+        for line in mpv_output:
+            if line.startswith('mpv '):
+                checkenv.mpv_version = line.split(' ', 2)[1]
+                logging.debug('Detected mpv version: %s' % checkenv.mpv_version)
+                break
+        else:
+            logorraise('Can not detect mpv version.', debug=debug)
+            checkenv.mpv_version = 'git-'
     except OSError as e:
         logging.error('Please install \'mpv\' as the media player.')
         retval = False
@@ -212,7 +222,7 @@ def main():
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
     args = parser.parse_args()
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
-    if not checkenv():
+    if not checkenv(debug=args.debug):
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None
     mpvflags = args.mpvflags.split()

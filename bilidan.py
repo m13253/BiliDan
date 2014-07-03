@@ -175,7 +175,7 @@ def checkenv(debug=False):
         logging.error('Please download \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py')))
         retval = False
     try:
-        mpv_process = subprocess.Popen(('mpv', '--version'), stdout=subprocess.PIPE, env={'MPV_VERBOSE': '-1'})
+        mpv_process = subprocess.Popen(('mpv', '--version'), stdout=subprocess.PIPE, env=dict(os.environ, MPV_VERBOSE='-1'))
         mpv_output = mpv_process.communicate()[0].decode('utf-8', 'replace').splitlines()
         for line in mpv_output:
             if line.startswith('[cplayer] mpv '):

@@ -105,8 +105,10 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
         logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
     logging.info('Launching media player...')
-    mpv_version_gt_0_3_11 = '0.3.11-' < checkenv.mpv_version < '0.3.2-' or checkenv.mpv_version.startswith('git-')
-    command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-video-aspect' if mpv_version_gt_0_3_11 else '--no-aspect', '--sub-ass' if mpv_version_gt_0_3_11 else '--ass', '--sub-file' if mpv_version_gt_0_3_11 else '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']+mpvflags+media_urls
+    mpv_version_master = tuple(checkenv.mpv_version.split('-', 1)[0].split('.'))
+    mpv_version_gte_0_4 = mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+    logging.debug('Compare mpv version: %s %s 0.4' % (checkenv.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
+    command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,'), '--merge-files', '--no-video-aspect' if mpv_version_gte_0_4 else '--no-aspect', '--sub-ass' if mpv_version_gte_0_4 else '--ass', '--sub-file' if mpv_version_gte_0_4 else '--sub', comment_out.name, '--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']+mpvflags+media_urls
     logcommand(command_line)
     player_process = subprocess.Popen(command_line)
     try:

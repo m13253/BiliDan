@@ -191,6 +191,15 @@ def checkenv(debug=False):
         logging.error('Please install \'mpv\' as the media player.')
         retval = False
     try:
+        mpv_process = subprocess.Popen(('mpv', '--vf', 'lavfi=help'), stdout=subprocess.DEVNULL)
+        mpv_process.wait()
+        if mpv_process.returncode != 0:
+            logging.error('mpv is not configured to enable \'lavfi\' filter. (mpv or ffmpeg may be too old)')
+            retval = False
+    except OSError as e:
+        logging.error('mpv is not configured to enable \'lavfi\' filter. (mpv or ffmpeg may be too old)')
+        retval = False
+    try:
         subprocess.Popen(('ffprobe', '-version'), stdout=subprocess.DEVNULL)
     except OSError as e:
         logging.error('Please install \'ffprobe\' from FFmpeg ultilities.')

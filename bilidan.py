@@ -36,6 +36,7 @@ if sys.version_info < (3, 0):
 import argparse
 import gzip
 import json
+import hashlib
 import io
 import logging
 import math
@@ -43,27 +44,33 @@ import os
 import re
 import subprocess
 import tempfile
+import urllib.parse
 import urllib.request
 import xml.dom.minidom
 import zlib
 
 
-USER_AGENT = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/31.0.1650.63 Safari/537.36'
-APPKEY = '876fe0ebd0e67a0f'  # The same key as in original Biligrab
+USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'
+API_USER_AGENT = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.8 (sb@loli.con.sh)'
+APPKEY = '85eb6835b0a1034e'  # The same key as in original Biligrab
+APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one yourself if you need
 
 
 def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
-    url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s'
+    url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s&sign=%(hash)s'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
-    url_get_media = 'http://interface.bilibili.com/playurl?%(args)scid=%(cid)s' if not overseas else 'http://interface.bilibili.com/v_cdn_play?%(args)scid=%(cid)s'
+    url_get_media = 'http://interface.bilibili.com/playurl?' if not overseas else 'http://interface.bilibili.com/v_cdn_play?'
     regex_match = regex.match(url)
     if not regex_match:
         raise ValueError('Invalid URL: %s' % url)
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')
-    _, resp_cid = urlfetch(url_get_cid % {'appkey': APPKEY, 'aid': aid, 'pid': pid}, cookie=cookie)
+    _, resp_cid = urlfetch(url_get_cid % {
+            'appkey': APPKEY, 'aid': aid, 'pid': pid,
+            'hash': bilibilihash({'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid})
+    }, user_agent=USER_AGENT, cookie=cookie)
     try:
         resp_cid = dict(json.loads(resp_cid.decode('utf-8', 'replace')))
         if 'error' in resp_cid:
@@ -75,7 +82,11 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
-    _, resp_media = urlfetch(url_get_media % {'cid': cid, 'args': 'quality=%s&' % quality if quality is not None else ''}, cookie=cookie)
+    media_args = {'appkey': APPKEY, 'cid': cid}
+    if quality is not None:
+        media_args['quality'] = quality
+    media_args['sign'] = bilibilihash(media_args)
+    _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=USER_AGENT, cookie=cookie)
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:
@@ -129,9 +140,9 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
     return player_process.returncode
 
 
-def urlfetch(url, *, cookie=None):
+def urlfetch(url, *, user_agent=USER_AGENT, cookie=None):
     logging.debug('Fetch: %s' % url)
-    req_headers = {'User-Agent': USER_AGENT, 'Accept-Encoding': 'gzip, deflate'}
+    req_headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip, deflate'}
     if cookie:
         req_headers['Cookie'] = cookie
     req = urllib.request.Request(url=url, headers=req_headers)
@@ -166,6 +177,10 @@ def getvideosize(url, verbose=False):
     except Exception as e:
         logorraise(e)
         return 0, 0
+
+
+def bilibilihash(args):
+    return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+APPSEC).encode('utf-8')).hexdigest()  # Fuck you bishi
 
 
 def checkenv(debug=False):

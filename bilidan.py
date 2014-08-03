@@ -58,7 +58,7 @@ APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one your
 
 def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
-    url_get_cid = 'http://api.bilibili.com/view?type=json&appkey=%(appkey)s&id=%(aid)s&page=%(pid)s&sign=%(hash)s'
+    url_get_cid = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
     url_get_media = 'http://interface.bilibili.com/playurl?' if not overseas else 'http://interface.bilibili.com/v_cdn_play?'
     regex_match = regex.match(url)
@@ -67,10 +67,9 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
     logging.info('Loading video info...')
-    _, resp_cid = urlfetch(url_get_cid % {
-            'appkey': APPKEY, 'aid': aid, 'pid': pid,
-            'hash': bilibilihash({'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid})
-    }, user_agent=USER_AGENT, cookie=cookie)
+    cid_args = {'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid}
+    cid_args['sign'] = bilibilihash(cid_args)
+    _, resp_cid = urlfetch(url_get_cid+urllib.parse.urlencode(cid_args), user_agent=API_USER_AGENT, cookie=cookie)
     try:
         resp_cid = dict(json.loads(resp_cid.decode('utf-8', 'replace')))
         if 'error' in resp_cid:
@@ -86,7 +85,7 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
     if quality is not None:
         media_args['quality'] = quality
     media_args['sign'] = bilibilihash(media_args)
-    _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=USER_AGENT, cookie=cookie)
+    _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=API_USER_AGENT, cookie=cookie)
     media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0:

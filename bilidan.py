@@ -188,8 +188,23 @@ def checkenv(debug=False):
     try:
         import danmaku2ass
     except ImportError as e:
-        logging.error('Please download \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py')))
-        retval = False
+        danmaku2ass_filename = os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py'))
+        logging.error('Automatically downloading \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % danmaku2ass_filename)
+        try:
+            danmaku2ass_downloaded = urlfetch('https://github.com/m13253/danmaku2ass/raw/master/danmaku2ass.py')
+            with open(danmaku2ass_filename, 'wb') as f:
+                f.write(danmaku2ass_downloaded[1])
+            del danmaku2ass_downloaded
+        except Exception as e:
+            logging.error('Can not download Danmaku2ASS module automatically (%s), please get it yourself.' % e)
+            retval = False
+    if retval:
+        try:
+            import danmaku2ass
+            danmaku2ass.Danmaku2ASS
+        except (AttributeError, ImportError) as e:
+            logging.error('Danmaku2ASS module is not working (%s), please update it at https://github.com/m13253/danmaku2ass' % e)
+            retval = False
     try:
         mpv_process = subprocess.Popen(('mpv', '--version'), stdout=subprocess.PIPE, env=dict(os.environ, MPV_VERBOSE='-1'))
         mpv_output = mpv_process.communicate()[0].decode('utf-8', 'replace').splitlines()

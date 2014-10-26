@@ -103,7 +103,7 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
     comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
     logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
-    d2aflags = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6)}, **d2aflags)
+    d2aflags = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6), 'comment_duration': 8.0}, **d2aflags)
     for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration'), float)):
         for k in i:
             if k in d2aflags:

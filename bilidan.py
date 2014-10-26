@@ -56,7 +56,7 @@ APPKEY = '85eb6835b0a1034e'  # The same key as in original Biligrab
 APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one yourself if you need
 
 
-def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -81,14 +81,17 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
     logging.info('Loading video content...')
-    media_args = {'appkey': APPKEY, 'cid': cid}
-    if quality is not None:
-        media_args['quality'] = quality
-    media_args['sign'] = bilibilihash(media_args)
-    _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=API_USER_AGENT, cookie=cookie)
-    media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+    if media is None:
+        media_args = {'appkey': APPKEY, 'cid': cid}
+        if quality is not None:
+            media_args['quality'] = quality
+        media_args['sign'] = bilibilihash(media_args)
+        _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=API_USER_AGENT, cookie=cookie)
+        media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+    else:
+        media_urls = [media]
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
-    if len(media_urls) == 0:
+    if len(media_urls) == 0 or media_urls[0] == 'http://static.hdslb.com/error.mp4':
         raise ValueError('Can not get valid media URLs.')
     logging.info('Determining video resolution...')
     video_size = getvideosize(media_urls[0], verbose=verbose)
@@ -265,8 +268,9 @@ def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
+    parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
+    parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
     parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for users outside China')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
@@ -284,7 +288,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

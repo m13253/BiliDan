@@ -95,7 +95,7 @@ def biligrab(url, *, debug=False, verbose=False, cookie=None, overseas=False, qu
     logging.info('Video resolution: %sx%s' % video_size)
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
-        comment_duration = max(6.75*video_size[0]/video_size[1]-4, 3.0)
+        comment_duration = min(max(6.75*video_size[0]/video_size[1]-4, 3.0), 8.0)
     else:
         logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
         video_size = (1920, 1080)

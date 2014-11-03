@@ -57,6 +57,7 @@ APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one your
 
 
 def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
+    # Parse URL
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -66,6 +67,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
         raise ValueError('Invalid URL: %s' % url)
     aid = regex_match.group(1)
     pid = regex_match.group(3) or '1'
+
+    # Fetch CID
     logging.info('Loading video info...')
     cid_args = {'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid}
     cid_args['sign'] = bilibilihash(cid_args)
@@ -80,6 +83,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     if not cid:
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
+
+    # Fetch media URLs
     logging.info('Loading video content...')
     if media is None:
         media_args = {'appkey': APPKEY, 'cid': cid}
@@ -93,6 +98,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
     if len(media_urls) == 0 or media_urls[0] == 'http://static.hdslb.com/error.mp4':
         raise ValueError('Can not get valid media URLs.')
+
+    # Analyze video
     logging.info('Determining video resolution...')
     video_size = getvideosize(media_urls[0], verbose=verbose)
     logging.info('Video resolution: %sx%s' % video_size)
@@ -103,6 +110,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
         logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
         video_size = (1920, 1080)
         comment_duration = 8.0
+
+    # Load danmaku
     logging.info('Loading comments...')
     _, resp_comment = urlfetch(url_get_comment % {'cid': cid}, cookie=cookie)
     comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
@@ -119,6 +128,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
         logorraise(e)
         logging.error('Danmaku2ASS failed, comments are disabled.')
     comment_out.flush()
+
+    # Launch MPV player
     logging.info('Launching media player...')
     mpv_version_master = tuple(checkenv.mpv_version.split('-', 1)[0].split('.'))
     mpv_version_gte_0_6 = mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
@@ -152,6 +163,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
         except Exception:
             pass
         raise
+
+    # Clean up
     comment_out.close()
     return player_process.returncode
 

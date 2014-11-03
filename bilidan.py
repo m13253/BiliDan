@@ -85,17 +85,22 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     logging.info('Got video cid: %s' % cid)
 
     # Fetch media URLs
-    logging.info('Loading video content...')
-    if media is None:
-        media_args = {'appkey': APPKEY, 'cid': cid}
-        if quality is not None:
-            media_args['quality'] = quality
-        media_args['sign'] = bilibilihash(media_args)
-        _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=API_USER_AGENT, cookie=cookie)
-        media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
-    else:
-        media_urls = [media]
-    logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+    for user_agent in (API_USER_AGENT, USER_AGENT):
+        logging.info('Loading video content...')
+        if media is None:
+            media_args = {'appkey': APPKEY, 'cid': cid}
+            if quality is not None:
+                media_args['quality'] = quality
+            media_args['sign'] = bilibilihash(media_args)
+            _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=user_agent, cookie=cookie)
+            media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+        else:
+            media_urls = [media]
+        logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+        if media_urls == ['http://static.hdslb.com/error.mp4']:
+            logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
+            continue
+        break
     if len(media_urls) == 0 or media_urls[0] == 'http://static.hdslb.com/error.mp4':
         raise ValueError('Can not get valid media URLs.')
 

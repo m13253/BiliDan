@@ -85,7 +85,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     logging.info('Got video cid: %s' % cid)
 
     # Fetch media URLs
-    for user_agent in (API_USER_AGENT, USER_AGENT):
+    for user_agent, fuck_you_bishi_mode in ((API_USER_AGENT, False), (USER_AGENT, True)):
         logging.info('Loading video content...')
         if media is None:
             media_args = {'appkey': APPKEY, 'cid': cid}
@@ -97,7 +97,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
         else:
             media_urls = [media]
         logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
-        if media_urls == ['http://static.hdslb.com/error.mp4']:
+        if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
             logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
             continue
         break

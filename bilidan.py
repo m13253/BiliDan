@@ -144,7 +144,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,')]
     if mpv_version_gte_0_6:
         command_line += ['--media-title', resp_cid.get('title', url)]
-    command_line += ['--merge-files']
+    if len(media_urls) > 1:
+        command_line += ['--merge-files']
     if mpv_version_gte_0_4:
         command_line += ['--no-video-aspect', '--sub-ass', '--sub-file', comment_out.name]
     else:

@@ -194,7 +194,10 @@ def urlfetch(url, *, user_agent=USER_AGENT, cookie=None):
 
 def getvideosize(url, verbose=False):
     try:
-        ffprobe_command = ['ffprobe', '-icy', '0', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', '-timeout', '60000000', '-user-agent', USER_AGENT, url]
+        if url.startswith('http:') or url.startswith('https:'):
+            ffprobe_command = ['ffprobe', '-icy', '0', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', '-timeout', '60000000', '-user-agent', USER_AGENT, url]
+        else:
+            ffprobe_command = ['ffprobe', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', url]
         logcommand(ffprobe_command)
         ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
         try:

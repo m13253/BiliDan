@@ -1,7 +1,7 @@
 Biligrab-Danmaku2ASS
 ====================
 
-Play videos on Bilibili.com with Danmaku2ASS
+Play videos on Bilibili.com with MPV and Danmaku2ASS
 
 
 Requirements
@@ -11,9 +11,7 @@ Requirements
 - [mpv Media Player](http://mpv.io/), a fork of MPlayer with features
   Biligrab-Danmaku2ASS requires
 - [FFmpeg](https://www.ffmpeg.org/) with ffprobe installed
-- [Danmaku2ASS](https://github.com/m13253/danmaku2ass), put `danmaku2ass.py`
-  the same directory as `bilidan.py`
-
+- [Danmaku2ASS](https://github.com/m13253/danmaku2ass), automatically installed
 
 Example
 -----

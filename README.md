@@ -21,9 +21,7 @@ Example
 ./bilidan.py http://www.bilibili.com/video/av314/     # High density comments!
 ./bilidan.py http://www.bilibili.com/video/av297197/  # Even Toukome (advanced comments)!
 ```
-Use option `--overseas` if your are outside China.
-
-Use option `--html5` to use the HTML5 mobile API(experimental).
+Use option `--source oversea` if your are outside China. And `--source html5`  to use the the experimental HTML5 API.
 
 
 Why Biligrab-Danmaku2ASS?

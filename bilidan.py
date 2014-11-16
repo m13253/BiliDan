@@ -51,17 +51,21 @@ import zlib
 
 
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'
-API_USER_AGENT = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.8 (sb@loli.con.sh)'
+API_USER_AGENT = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.9x (sb@loli.con.sh)'
 APPKEY = '85eb6835b0a1034e'  # The same key as in original Biligrab
 APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one yourself if you need
+BILIGRAB_HEADER = {'User-Agent': API_USER_AGENT, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
-def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overseas=False, quality=None, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, mpvflags=[], d2aflags={}):
     # Parse URL
     regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
     url_get_cid = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
-    url_get_media = 'http://interface.bilibili.com/playurl?' if not overseas else 'http://interface.bilibili.com/v_cdn_play?'
+    if source == 'default':
+        url_get_media = 'http://interface.bilibili.com/playurl?'
+    elif source == 'oversea':
+        url_get_media = 'http://interface.bilibili.com/v_cdn_play?'
     regex_match = regex.match(url)
     if not regex_match:
         raise ValueError('Invalid URL: %s' % url)
@@ -85,25 +89,27 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, overse
     logging.info('Got video cid: %s' % cid)
 
     # Fetch media URLs
-    for user_agent, fuck_you_bishi_mode in ((API_USER_AGENT, False), (USER_AGENT, True)):
-        logging.info('Loading video content...')
-        if media is None:
-            media_args = {'appkey': APPKEY, 'cid': cid}
-            if quality is not None:
-                media_args['quality'] = quality
-            media_args['sign'] = bilibilihash(media_args)
-            _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=user_agent, cookie=cookie)
-            media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
-        else:
-            media_urls = [media]
-        logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
-        if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
-            logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
-            continue
-        break
+    if source in {'default', 'overseas'}:
+        for user_agent, fuck_you_bishi_mode in ((API_USER_AGENT, False), (USER_AGENT, True)):
+            logging.info('Loading video content...')
+            if media is None:
+                media_args = {'appkey': APPKEY, 'cid': cid}
+                if quality is not None:
+                    media_args['quality'] = quality
+                media_args['sign'] = bilibilihash(media_args)
+                _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=user_agent, cookie=cookie)
+                media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+            else:
+                media_urls = [media]
+            logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+            if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
+                logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
+                continue
+            break
+    else:
+        media_urls = find_video_address_html5(aid, pid, header=BILIGRAB_HEADER)
     if len(media_urls) == 0 or media_urls[0] == 'http://static.hdslb.com/error.mp4':
         raise ValueError('Can not get valid media URLs.')
-
     # Analyze video
     logging.info('Determining video resolution...')
     video_size = getvideosize(media_urls[0], verbose=verbose)
@@ -286,6 +292,50 @@ def logorraise(message, debug=False):
         logging.error(str(message))
 
 
+def process_m3u8(url):
+    """str->list
+    Only Youku.
+    From: Biligrab 0.97.9 L276"""
+    url_list = []
+    request = urllib.request.Request(url, headers=BILIGRAB_HEADER)
+    try:
+        response = urllib.request.urlopen(request)
+    except:
+        logging.error('Cannot download required m3u8!')
+        return []
+    data = response.read()
+    data = data.split()
+    if 'youku' in url:
+        return [data[4].split('?')[0]]
+    else:
+        return []
+
+
+def find_video_address_html5(vid, p, header=BILIGRAB_HEADER):
+    """str,str,dict->list
+    Method #3.
+    From: Biligrab 0.97.9 L276"""
+    api_url = 'http://m.acg.tv/m/html5?aid={vid}&page={p}'.format(vid=vid, p=p)
+    request = urllib.request.Request(api_url, headers=header)
+    url_list = []
+    logging.info('This API can be slow, and is unavalable for some source like Tencent.')
+    try:
+        response = urllib.request.urlopen(request)
+    except:
+        logging.error('Cannot connect to HTML5 API!')
+        return []
+    data = response.read()
+    info = json.loads(data.decode('utf-8'))
+    raw_url = info['src']
+    if 'error.mp4' in raw_url:
+        logging.error('HTML5 API returned ERROR or not avalable!')
+        return []
+    if 'm3u8' in raw_url:
+        logging.info('Found m3u8, processing...')
+        return process_m3u8(raw_url)
+    return raw_url
+
+
 def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
@@ -293,8 +343,8 @@ def main():
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
-    parser.add_argument('-o', '--overseas', action='store_true', help='Enable overseas proxy for users outside China')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
+    parser.add_argument('-s', '--source', help='Specify the source to use: default for original, oversea for CDN, html5 for mobile')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
@@ -305,12 +355,13 @@ def main():
     if not checkenv(debug=args.debug):
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None
+    source = args.source if args.source is not None else 'default'
     mpvflags = args.mpvflags.split()
     d2aflags = dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {}
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, overseas=args.overseas, quality=quality, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

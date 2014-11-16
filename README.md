@@ -21,7 +21,7 @@ Example
 ./bilidan.py http://www.bilibili.com/video/av314/     # High density comments!
 ./bilidan.py http://www.bilibili.com/video/av297197/  # Even Toukome (advanced comments)!
 ```
-Use option `--overseas` if your are outside China.
+Use option `--source overseas` if your are outside China. And `--source html5`  to use the the experimental HTML5 API.
 
 
 Why Biligrab-Danmaku2ASS?
@@ -56,7 +56,9 @@ Tips
 - Use `--d2aflags 'text_opacity=0.8'` to set comment opacity.
 - Try to fast forward or rewind when streaming is stuck, or to tweak cache
   parameters of mpv.
-
+- For issue related to URL parsing (especially the experimental HTML5 API), 
+  please report directly to Biligrab, the upstream parser:
+  https://github.com/cnbeining/Biligrab/issues
 
 License
 -------

@@ -87,8 +87,9 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
     if not cid:
         raise ValueError('Can not get \'cid\' from %s' % url)
     logging.info('Got video cid: %s' % cid)
+
     # Fetch media URLs
-    if source == 'default' or source == 'oversea':
+    if source in {'default', 'overseas'}:
         for user_agent, fuck_you_bishi_mode in ((API_USER_AGENT, False), (USER_AGENT, True)):
             logging.info('Loading video content...')
             if media is None:

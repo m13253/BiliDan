@@ -160,7 +160,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
 
         Arguments: cid
 
-        Return value: comment_out
+        Return value: comment_out -> file
         '''
         _, resp_comment = fetch_url(url_get_comment % {'cid': cid}, cookie=cookie)
         comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
@@ -184,7 +184,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
 
         Arguments: video_metadata, media_urls, comment_out
 
-        Return value: player_exit_code
+        Return value: player_exit_code -> int
         '''
         mpv_version_master = tuple(check_env.mpv_version.split('-', 1)[0].split('.'))
         mpv_version_gte_0_6 = mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
@@ -264,7 +264,7 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
 
     Arguments: url, user_agent, cookie
 
-    Return value: (response_object, response_data)
+    Return value: (response_object, response_data) -> (http.client.HTTPResponse, bytes)
     '''
     logging.debug('Fetch: %s' % url)
     req_headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip, deflate'}
@@ -284,10 +284,20 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
 
 
 def bilibili_hash(args):
+    '''Calculate API signature hash
+
+    Arguments: {request_paramter: value}
+
+    Return value: hash_value -> str
+    '''
     return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+APPSEC).encode('utf-8')).hexdigest()  # Fuck you bishi
 
 
 def check_env(debug=False):
+    '''Check the system environment to make sure dependencies are set up correctly
+
+    Return value: is_successful -> bool
+    '''
     global danmaku2ass, requests
     retval = True
     try:
@@ -363,14 +373,14 @@ def process_m3u8(url):
     url_list = []
     request = urllib.request.Request(url, headers=BILIGRAB_HEADER)
     try:
-        response = urllib.request.urlopen(request)
-    except:
-        logging.error('Cannot download required m3u8!')
+        response = urllib.request.urlopen(request)  # FIXME: url_fetch should be used instead
+    except:  # FIXME: breaking the Zen of Python: 'Errors should never pass silently.'
+        logging.error('Cannot download required m3u8!')  # FIXME: an English grammar mistake exists, and never be rude to the user
         return []
     data = response.read()
     data = data.split()
     if 'youku' in url:
-        return [data[4].split('?')[0]]
+        return [data[4].split('?')[0]]  # TypeError: Type str doesn't support the buffer API
     else:
         return []
 
@@ -382,19 +392,19 @@ def find_video_address_html5(vid, p, header=BILIGRAB_HEADER):
     api_url = 'http://m.acg.tv/m/html5?aid={vid}&page={p}'.format(vid=vid, p=p)
     request = urllib.request.Request(api_url, headers=header)
     url_list = []
-    logging.info('This API can be slow, and is unavalable for some source like Tencent.')
+    logging.info('This API can be slow, and is unavalable for some source like Tencent.')  # FIXME: a typo exists
     try:
         response = urllib.request.urlopen(request)
     except:
-        logging.error('Cannot connect to HTML5 API!')
+        logging.error('Cannot connect to HTML5 API!')  # FIXME: nonsence log message, and never be rude to the user
         return []
     data = response.read()
     info = json.loads(data.decode('utf-8'))
-    raw_url = info['src']
-    if 'error.mp4' in raw_url:
-        logging.error('HTML5 API returned ERROR or not avalable!')
+    raw_url = info['src']  # FIXME: exceptions may happen here
+    if 'error.mp4' in raw_url:  # FIXME: condition not rubost
+        logging.error('HTML5 API returned ERROR or not avalable!')  # FIXME: two typos exists
         return []
-    if 'm3u8' in raw_url:
+    if 'm3u8' in raw_url:  # FIXME: condition not rubost
         logging.info('Found m3u8, processing...')
         return process_m3u8(raw_url)
     return raw_url

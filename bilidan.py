@@ -147,7 +147,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
     mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
     logging.debug('Compare mpv version: %s %s 0.6' % (checkenv.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
     logging.debug('Compare mpv version: %s %s 0.4' % (checkenv.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
-    command_line = ['mpv', '--autofit', '950x540', '--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,')]
+    command_line = ['mpv', '--autofit', '950x540']
+    if mpv_version_gte_0_4:
+        command_line += ['--cache-file', 'TMP']
+    command_line += ['--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,')]
     if mpv_version_gte_0_6:
         command_line += ['--media-title', resp_cid.get('title', url)]
     if len(media_urls) > 1:

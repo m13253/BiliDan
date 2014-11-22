@@ -50,141 +50,222 @@ import xml.dom.minidom
 import zlib
 
 
-USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'
-API_USER_AGENT = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.9x (sb@loli.con.sh)'
+USER_AGENT_PLAYER = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'
+USER_AGENT_API = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.9x (sb@loli.con.sh)'
 APPKEY = '85eb6835b0a1034e'  # The same key as in original Biligrab
 APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one yourself if you need
-BILIGRAB_HEADER = {'User-Agent': API_USER_AGENT, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
+BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
 def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, mpvflags=[], d2aflags={}):
-    # Parse URL
-    regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
-    url_get_cid = 'http://api.bilibili.com/view?'
+
+    url_get_metadata = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
-    if source == 'default':
-        url_get_media = 'http://interface.bilibili.com/playurl?'
-    elif source == 'oversea':
+    if source == 'overseas':
         url_get_media = 'http://interface.bilibili.com/v_cdn_play?'
-    regex_match = regex.match(url)
-    if not regex_match:
-        raise ValueError('Invalid URL: %s' % url)
-    aid = regex_match.group(1)
-    pid = regex_match.group(3) or '1'
+    else:
+        url_get_media = 'http://interface.bilibili.com/playurl?'
 
-    # Fetch CID
-    logging.info('Loading video info...')
-    cid_args = {'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid}
-    cid_args['sign'] = bilibilihash(cid_args)
-    _, resp_cid = urlfetch(url_get_cid+urllib.parse.urlencode(cid_args), user_agent=API_USER_AGENT, cookie=cookie)
-    try:
-        resp_cid = dict(json.loads(resp_cid.decode('utf-8', 'replace')))
-        if 'error' in resp_cid:
-            logging.error('Error message: %s' % resp_cid.get('error'))
-        cid = resp_cid.get('cid')
-    except (TypeError, ValueError):
-        raise ValueError('Can not get \'cid\' from %s' % url)
-    if not cid:
-        raise ValueError('Can not get \'cid\' from %s' % url)
-    logging.info('Got video cid: %s' % cid)
+    def parse_url(url):
+        '''Parse a bilibili.com URL
 
-    # Fetch media URLs
-    if source in {'default', 'overseas'}:
-        for user_agent, fuck_you_bishi_mode in ((API_USER_AGENT, False), (USER_AGENT, True)):
-            logging.info('Loading video content...')
-            if media is None:
-                media_args = {'appkey': APPKEY, 'cid': cid}
-                if quality is not None:
-                    media_args['quality'] = quality
-                media_args['sign'] = bilibilihash(media_args)
-                _, resp_media = urlfetch(url_get_media+urllib.parse.urlencode(media_args), user_agent=user_agent, cookie=cookie)
-                media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(resp_media.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
-            else:
-                media_urls = [media]
-            logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+        Return value: (aid, pid)
+        '''
+        regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
+        regex_match = regex.match(url)
+        if not regex_match:
+            raise ValueError('Invalid URL: %s' % url)
+        aid = regex_match.group(1)
+        pid = regex_match.group(3) or '1'
+        return aid, pid
+
+    def fetch_video_metadata(aid, pid):
+        '''Fetch video metadata
+
+        Arguments: aid, pid
+
+        Return value: {'cid': cid, 'title': title}
+        '''
+        req_args = {'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid}
+        req_args['sign'] = bilibili_hash(req_args)
+        _, response = fetch_url(url_get_metadata+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
+        try:
+            response = dict(json.loads(response.decode('utf-8', 'replace')))
+        except (TypeError, ValueError):
+            raise ValueError('Can not get \'cid\' from %s' % url)
+        if 'error' in response:
+            logging.error('Error message: %s' % response.get('error'))
+        if 'cid' not in response:
+            raise ValueError('Can not get \'cid\' from %s' % url)
+        return response
+
+    def get_media_urls(cid, *, fuck_you_bishi_mode=False):
+        '''Request the URLs of the video
+
+        Arguments: cid
+
+        Return value: [media_urls]
+        '''
+        if source in {None, 'overseas'}:
+            user_agent = USER_AGENT_API if not fuck_you_bishi_mode else USER_AGENT_PLAYER
+            req_args = {'appkey': APPKEY, 'cid': cid}
+            if quality is not None:
+                req_args['quality'] = quality
+            req_args['sign'] = bilibili_hash(req_args)
+            _, response = fetch_url(url_get_media+urllib.parse.urlencode(req_args), user_agent=user_agent, cookie=cookie)
+            media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
-                continue
-            break
+                return get_media_urls(cid, fuck_you_bishi_mode=True)
+        elif source == 'html5':
+            media_urls = find_video_address_html5(aid, pid, header=BILIGRAB_HEADER)
+        else:
+            assert source in {None, 'overseas', 'html5'}
+        if len(media_urls) == 0 or media_urls == ['http://static.hdslb.com/error.mp4']:
+            raise ValueError('Can not get valid media URLs.')
+        return media_urls
+
+    def get_video_size(media_urls):
+        '''Determine the resolution of the video
+
+        Arguments: [media_urls]
+
+        Return value: (width, height)
+        '''
+        try:
+            if media_urls[0].startswith('http:') or media_urls[0].startswith('https:'):
+                ffprobe_command = ['ffprobe', '-icy', '0', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', '-timeout', '60000000', '-user-agent', USER_AGENT_PLAYER, '--', media_urls[0]]
+            else:
+                ffprobe_command = ['ffprobe', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', '--', media_urls[0]]
+            log_command(ffprobe_command)
+            ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
+            try:
+                ffprobe_output = json.loads(ffprobe_process.communicate()[0].decode('utf-8', 'replace'))
+            except KeyboardInterrupt:
+                logging.warning('Cancelling getting video size, press Ctrl-C again to terminate.')
+                ffprobe_process.terminate()
+                return 0, 0
+            width, height, widthxheight = 0, 0, 0
+            for stream in dict.get(ffprobe_output, 'streams') or []:
+                if dict.get(stream, 'width')*dict.get(stream, 'height') > widthxheight:
+                    width, height = dict.get(stream, 'width'), dict.get(stream, 'height')
+            return width, height
+        except Exception as e:
+            log_or_raise(e, debug=debug)
+            return 0, 0
+
+
+    def convert_comments(cid, video_size):
+        '''Convert comments to ASS subtitle format
+
+        Arguments: cid
+
+        Return value: comment_out
+        '''
+        _, resp_comment = fetch_url(url_get_comment % {'cid': cid}, cookie=cookie)
+        comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
+        comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
+        logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
+        d2a_args = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6), 'text_opacity': 0.8, 'comment_duration': min(max(6.75*video_size[0]/video_size[1]-4, 3.0), 8.0)}, **d2aflags)
+        for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration'), float)):
+            for k in i:
+                if k in d2aflags:
+                    d2a_args[k] = j(d2aflags[k])
+        try:
+            danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2a_args)
+        except Exception as e:
+            log_or_raise(e, debug=debug)
+            logging.error('Danmaku2ASS failed, comments are disabled.')
+        comment_out.flush()
+        return comment_out
+
+    def launch_player(video_metadata, media_urls, comment_out, is_playlist=False):
+        '''Launch MPV media player
+
+        Arguments: video_metadata, media_urls, comment_out
+
+        Return value: player_exit_code
+        '''
+        mpv_version_master = tuple(check_env.mpv_version.split('-', 1)[0].split('.'))
+        mpv_version_gte_0_6 = mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+        mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+        logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
+        logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
+        command_line = ['mpv', '--autofit', '950x540']
+        if mpv_version_gte_0_4:
+            command_line += ['--cache-file', 'TMP']
+        command_line += ['--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
+        if mpv_version_gte_0_6:
+            command_line += ['--media-title', video_metadata.get('title', url)]
+        if is_playlist or len(media_urls) > 1:
+            command_line += ['--merge-files']
+        if mpv_version_gte_0_4:
+            command_line += ['--no-video-aspect', '--sub-ass', '--sub-file', comment_out.name]
+        else:
+            command_line += ['--no-aspect', '--ass', '--sub', comment_out.name]
+        command_line += ['--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']
+        command_line += mpvflags
+        if is_playlist:
+            command_line += ['--playlist']
+        else:
+            command_line += ['--']
+        command_line += media_urls
+        log_command(command_line)
+        player_process = subprocess.Popen(command_line)
+        try:
+            player_process.wait()
+        except KeyboardInterrupt:
+            logging.info('Terminating media player...')
+            try:
+                player_process.terminate()
+                try:
+                    player_process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    logging.info('Killing media player by force...')
+                    player_process.kill()
+            except Exception:
+                pass
+            raise
+        return player_process.returncode
+
+    aid, pid = parse_url(url)
+
+    logging.info('Loading video info...')
+    video_metadata = fetch_video_metadata(aid, pid)
+    logging.info('Got video cid: %s' % video_metadata['cid'])
+
+    logging.info('Loading video content...')
+    if media is None:
+        media_urls = get_media_urls(video_metadata['cid'])
     else:
-        media_urls = find_video_address_html5(aid, pid, header=BILIGRAB_HEADER)
-    if len(media_urls) == 0 or media_urls[0] == 'http://static.hdslb.com/error.mp4':
-        raise ValueError('Can not get valid media URLs.')
-    # Analyze video
+        media_urls = [media]
+    logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+
     logging.info('Determining video resolution...')
-    video_size = getvideosize(media_urls[0], verbose=verbose)
+    video_size = get_video_size(media_urls)
     logging.info('Video resolution: %sx%s' % video_size)
     if video_size[0] > 0 and video_size[1] > 0:
         video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
-        comment_duration = min(max(6.75*video_size[0]/video_size[1]-4, 3.0), 8.0)
     else:
-        logorraise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
+        log_or_raise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
         video_size = (1920, 1080)
-        comment_duration = 8.0
 
-    # Load danmaku
     logging.info('Loading comments...')
-    _, resp_comment = urlfetch(url_get_comment % {'cid': cid}, cookie=cookie)
-    comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
-    comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
-    logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
-    d2aflags = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6), 'comment_duration': comment_duration}, **d2aflags)
-    for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration'), float)):
-        for k in i:
-            if k in d2aflags:
-                d2aflags[k] = j(d2aflags[k])
-    try:
-        danmaku2ass.Danmaku2ASS([comment_in], comment_out, **d2aflags)
-    except Exception as e:
-        logorraise(e)
-        logging.error('Danmaku2ASS failed, comments are disabled.')
-    comment_out.flush()
+    comment_out = convert_comments(video_metadata['cid'], video_size)
 
-    # Launch MPV player
     logging.info('Launching media player...')
-    mpv_version_master = tuple(checkenv.mpv_version.split('-', 1)[0].split('.'))
-    mpv_version_gte_0_6 = mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
-    mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
-    logging.debug('Compare mpv version: %s %s 0.6' % (checkenv.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
-    logging.debug('Compare mpv version: %s %s 0.4' % (checkenv.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
-    command_line = ['mpv', '--autofit', '950x540']
-    if mpv_version_gte_0_4:
-        command_line += ['--cache-file', 'TMP']
-    command_line += ['--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT.replace(',', '\\,')]
-    if mpv_version_gte_0_6:
-        command_line += ['--media-title', resp_cid.get('title', url)]
-    if len(media_urls) > 1:
-        command_line += ['--merge-files']
-    if mpv_version_gte_0_4:
-        command_line += ['--no-video-aspect', '--sub-ass', '--sub-file', comment_out.name]
-    else:
-        command_line += ['--no-aspect', '--ass', '--sub', comment_out.name]
-    command_line += ['--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']
-    command_line += mpvflags
-    command_line += media_urls
-    logcommand(command_line)
-    player_process = subprocess.Popen(command_line)
-    try:
-        player_process.wait()
-    except KeyboardInterrupt:
-        logging.info('Terminating media player...')
-        try:
-            player_process.terminate()
-            try:
-                player_process.wait(timeout=2)
-            except subprocess.TimeoutExpired:
-                logging.info('Killing media player by force...')
-                player_process.kill()
-        except Exception:
-            pass
-        raise
-
-    # Clean up
+    player_exit_code = launch_player(video_metadata, media_urls, comment_out)
     comment_out.close()
-    return player_process.returncode
+    return player_exit_code
 
 
-def urlfetch(url, *, user_agent=USER_AGENT, cookie=None):
+def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
+    '''Fetch HTTP URL
+
+    Arguments: url, user_agent, cookie
+
+    Return value: (response_object, response_data)
+    '''
     logging.debug('Fetch: %s' % url)
     req_headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip, deflate'}
     if cookie:
@@ -202,35 +283,11 @@ def urlfetch(url, *, user_agent=USER_AGENT, cookie=None):
     return response, data
 
 
-def getvideosize(url, verbose=False):
-    try:
-        if url.startswith('http:') or url.startswith('https:'):
-            ffprobe_command = ['ffprobe', '-icy', '0', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', '-timeout', '60000000', '-user-agent', USER_AGENT, url]
-        else:
-            ffprobe_command = ['ffprobe', '-loglevel', 'repeat+warning' if verbose else 'repeat+error', '-print_format', 'json', '-select_streams', 'v', '-show_streams', url]
-        logcommand(ffprobe_command)
-        ffprobe_process = subprocess.Popen(ffprobe_command, stdout=subprocess.PIPE)
-        try:
-            ffprobe_output = json.loads(ffprobe_process.communicate()[0].decode('utf-8', 'replace'))
-        except KeyboardInterrupt:
-            logging.warning('Cancelling getting video size, press Ctrl-C again to terminate.')
-            ffprobe_process.terminate()
-            return 0, 0
-        width, height, widthxheight = 0, 0, 0
-        for stream in dict.get(ffprobe_output, 'streams') or []:
-            if dict.get(stream, 'width')*dict.get(stream, 'height') > widthxheight:
-                width, height = dict.get(stream, 'width'), dict.get(stream, 'height')
-        return width, height
-    except Exception as e:
-        logorraise(e)
-        return 0, 0
-
-
-def bilibilihash(args):
+def bilibili_hash(args):
     return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+APPSEC).encode('utf-8')).hexdigest()  # Fuck you bishi
 
 
-def checkenv(debug=False):
+def check_env(debug=False):
     global danmaku2ass, requests
     retval = True
     try:
@@ -239,7 +296,7 @@ def checkenv(debug=False):
         danmaku2ass_filename = os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py'))
         logging.error('Automatically downloading \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % danmaku2ass_filename)
         try:
-            danmaku2ass_downloaded = urlfetch('https://github.com/m13253/danmaku2ass/raw/master/danmaku2ass.py')
+            danmaku2ass_downloaded = fetch_url('https://github.com/m13253/danmaku2ass/raw/master/danmaku2ass.py')
             with open(danmaku2ass_filename, 'wb') as f:
                 f.write(danmaku2ass_downloaded[1])
             del danmaku2ass_downloaded
@@ -258,12 +315,12 @@ def checkenv(debug=False):
         mpv_output = mpv_process.communicate()[0].decode('utf-8', 'replace').splitlines()
         for line in mpv_output:
             if line.startswith('[cplayer] mpv '):
-                checkenv.mpv_version = line.split(' ', 3)[2]
-                logging.debug('Detected mpv version: %s' % checkenv.mpv_version)
+                check_env.mpv_version = line.split(' ', 3)[2]
+                logging.debug('Detected mpv version: %s' % check_env.mpv_version)
                 break
         else:
-            logorraise('Can not detect mpv version.', debug=debug)
-            checkenv.mpv_version = 'git-'
+            log_or_raise('Can not detect mpv version.', debug=debug)
+            check_env.mpv_version = 'git-'
     except OSError as e:
         logging.error('Please install \'mpv\' as the media player.')
         retval = False
@@ -284,15 +341,19 @@ def checkenv(debug=False):
     return retval
 
 
-def logcommand(command_line):
-    logging.debug('Executing: '+' '.join('\''+i+'\'' if ' ' in i or '&' in i or '"' in i else i for i in command_line))
+def log_command(command_line):
+    '''Log the command line to be executed, escaping correctly
+    '''
+    logging.debug('Executing: '+' '.join('\''+i+'\'' if ' ' in i or '?' in i or '&' in i or '"' in i else i for i in command_line))
 
 
-def logorraise(message, debug=False):
+def log_or_raise(exception, debug=False):
+    '''Log exception if debug == False, or raise it if debug == True
+    '''
     if debug:
-        raise message
+        raise exception
     else:
-        logging.error(str(message))
+        logging.error(str(exception))
 
 
 def process_m3u8(url):
@@ -339,15 +400,27 @@ def find_video_address_html5(vid, p, header=BILIGRAB_HEADER):
     return raw_url
 
 
+class MyArgumentFormatter(argparse.HelpFormatter):
+
+    def _split_lines(self, text, width):
+        '''Patch the default argparse.HelpFormatter so that '\\n' is correctly handled
+        '''
+        return [i for line in text.splitlines() for i in argparse.HelpFormatter._split_lines(self, line, width)]
+
+
 def main():
     if len(sys.argv) == 1:
         sys.argv.append('--help')
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(formatter_class=MyArgumentFormatter)
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
-    parser.add_argument('-s', '--source', help='Specify the source to use: default for original, oversea for CDN, html5 for mobile')
+    parser.add_argument('-s', '--source', help='Specify the source of video provider.\n'+
+                                               'Available values:\n'+
+                                               'default: Default source\n'+
+                                               'overseas: CDN acceleration for users outside china\n'+
+                                               'html5: Low quality video provided by m.acg.tv for mobile users')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
@@ -355,12 +428,14 @@ def main():
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
     args = parser.parse_args()
     logging.basicConfig(format='%(levelname)s: %(message)s', level=logging.DEBUG if args.verbose else logging.INFO)
-    if not checkenv(debug=args.debug):
+    if not check_env(debug=args.debug):
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None
-    source = args.source if args.source is not None else 'default'
+    source = args.source if args.source != 'default' else None
+    if source not in {None, 'overseas', 'html5'}:
+        raise ValueError('invalid value specified for --source, see --help for more information')
     mpvflags = args.mpvflags.split()
-    d2aflags = dict(map(lambda x: x.split('=', 1) if '=' in x else [x, ''], args.d2aflags.split(','))) if args.d2aflags else {}
+    d2aflags = dict((i.split('=', 1) if '=' in i else [i, ''] for i in args.d2aflags.split(','))) if args.d2aflags else {}
     retval = 0
     for url in args.url:
         try:

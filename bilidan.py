@@ -154,7 +154,6 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             log_or_raise(e, debug=debug)
             return 0, 0
 
-
     def convert_comments(cid, video_size):
         '''Convert comments to ASS subtitle format
 
@@ -426,10 +425,10 @@ def main():
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
-    parser.add_argument('-s', '--source', help='Specify the source of video provider.\n'+
-                                               'Available values:\n'+
-                                               'default: Default source\n'+
-                                               'overseas: CDN acceleration for users outside china\n'+
+    parser.add_argument('-s', '--source', help='Specify the source of video provider.\n' +
+                                               'Available values:\n' +
+                                               'default: Default source\n' +
+                                               'overseas: CDN acceleration for users outside china\n' +
                                                'html5: Low quality video provided by m.acg.tv for mobile users')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')

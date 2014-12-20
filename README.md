@@ -52,7 +52,7 @@ Tips
   with `--cookie` option.
 - If you have difficulties connecting to video server, try `--overseas`.
 - If your computer is not fast enough, try `--mpvflags '--framedrop yes'`.
-- Use `--d2aflags 'comment_duration=5'` to set comment flow speed.
+- Use `--d2aflags 'duration_marquee=5'` to set comment flow speed.
 - Use `--d2aflags 'text_opacity=0.8'` to set comment opacity.
 - Try to fast forward or rewind when streaming is stuck, or to tweak cache
   parameters of mpv.

@@ -193,7 +193,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         command_line = ['mpv', '--autofit', '950x540']
         if mpv_version_gte_0_4:
             command_line += ['--cache-file', 'TMP']
-        command_line += ['--framedrop', 'no', '--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
+        command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
             command_line += ['--media-title', video_metadata.get('title', url)]
         if is_playlist or len(media_urls) > 1:
@@ -202,7 +202,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             command_line += ['--no-video-aspect', '--sub-ass', '--sub-file', comment_out.name]
         else:
             command_line += ['--no-aspect', '--ass', '--sub', comment_out.name]
-        command_line += ['--vf', 'lavfi="fps=fps=50:round=down"', '--vo', 'wayland,opengl,opengl-old,x11,corevideo,direct3d_shaders,direct3d,sdl,xv,']
+        command_line += ['--vf', 'lavfi="fps=fps=50:round=down"']
         command_line += mpvflags
         if is_playlist:
             command_line += ['--playlist']

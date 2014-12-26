@@ -190,7 +190,12 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
         logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
         logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
-        increase_fps = 'vdpau' not in mpvflags and 'vaapi' not in mpvflags and 'vda' not in mpvflags
+        increase_fps = True
+        for i in mpvflags:
+            i = i.split('=', 1)
+            if 'vdpau' in i or 'vaapi' in i or 'vda' in i:
+                increase_fps = False
+                break
         command_line = ['mpv', '--autofit', '950x540']
         if mpv_version_gte_0_4:
             command_line += ['--cache-file', 'TMP']

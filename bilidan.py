@@ -190,9 +190,12 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
         logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
         logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
+        increase_fps = 'vdpau' not in mpvflags and 'vaapi' not in mpvflags and 'vda' not in mpvflags
         command_line = ['mpv', '--autofit', '950x540']
         if mpv_version_gte_0_4:
             command_line += ['--cache-file', 'TMP']
+        if increase_fps and mpv_version_gte_0_6:
+            command_line += ['--framedrop', 'vo']
         command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
             command_line += ['--media-title', video_metadata.get('title', url)]
@@ -202,7 +205,11 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             command_line += ['--no-video-aspect', '--sub-ass', '--sub-file', comment_out.name]
         else:
             command_line += ['--no-aspect', '--ass', '--sub', comment_out.name]
-        command_line += ['--vf', 'lavfi="fps=fps=50:round=down"']
+        if increase_fps:
+            if mpv_version_gte_0_6:
+                command_line += ['--vf', 'lavfi="fps=fps=60:round=down"']
+            else:
+                command_line += ['--vf', 'lavfi="fps=fps=50:round=down"']
         command_line += mpvflags
         if is_playlist:
             command_line += ['--playlist']

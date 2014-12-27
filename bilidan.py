@@ -197,7 +197,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
                 increase_fps = False
                 break
         command_line = ['mpv', '--autofit', '950x540']
-        if mpv_version_gte_0_4:
+        if mpv_version_gte_0_6:
             command_line += ['--cache-file', 'TMP']
         if increase_fps and mpv_version_gte_0_6:
             command_line += ['--framedrop', 'vo']

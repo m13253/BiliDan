@@ -118,7 +118,11 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
         elif source == 'html5':
-            media_urls = find_video_address_html5(aid, pid, header=BILIGRAB_HEADER)
+            _, response = fetch_url('http://m.acg.tv/m/html5?aid=%(aid)s&page=%(pid)s' % {'aid': aid, 'pid': pid}, user_agent=USER_AGENT_PLAYER, cookie=cookie)
+            response = json.loads(response.decode('utf-8', 'replace'))
+            media_urls = [dict.get(response, 'src')]
+            if not media_urls[0]:
+                media_urls = []
         else:
             assert source in {None, 'overseas', 'html5'}
         if len(media_urls) == 0 or media_urls == ['http://static.hdslb.com/error.mp4']:
@@ -375,50 +379,6 @@ def log_or_raise(exception, debug=False):
         raise exception
     else:
         logging.error(str(exception))
-
-
-def process_m3u8(url):
-    """str->list
-    Only Youku.
-    From: Biligrab 0.97.9 L276"""
-    url_list = []
-    request = urllib.request.Request(url, headers=BILIGRAB_HEADER)
-    try:
-        response = urllib.request.urlopen(request)  # FIXME: url_fetch should be used instead
-    except:  # FIXME: breaking the Zen of Python: 'Errors should never pass silently.'
-        logging.error('Cannot download required m3u8!')  # FIXME: an English grammar mistake exists, and never be rude to the user
-        return []
-    data = response.read()
-    data = data.split()
-    if 'youku' in url:
-        return [data[4].split('?')[0]]  # TypeError: Type str doesn't support the buffer API
-    else:
-        return []
-
-
-def find_video_address_html5(vid, p, header=BILIGRAB_HEADER):
-    """str,str,dict->list
-    Method #3.
-    From: Biligrab 0.97.9 L276"""
-    api_url = 'http://m.acg.tv/m/html5?aid={vid}&page={p}'.format(vid=vid, p=p)
-    request = urllib.request.Request(api_url, headers=header)
-    url_list = []
-    logging.info('This API can be slow, and is unavalable for some source like Tencent.')  # FIXME: a typo exists
-    try:
-        response = urllib.request.urlopen(request)
-    except:
-        logging.error('Cannot connect to HTML5 API!')  # FIXME: nonsence log message, and never be rude to the user
-        return []
-    data = response.read()
-    info = json.loads(data.decode('utf-8'))
-    raw_url = info['src']  # FIXME: exceptions may happen here
-    if 'error.mp4' in raw_url:  # FIXME: condition not rubost
-        logging.error('HTML5 API returned ERROR or not avalable!')  # FIXME: two typos exists
-        return []
-    if 'm3u8' in raw_url:  # FIXME: condition not rubost
-        logging.info('Found m3u8, processing...')
-        return process_m3u8(raw_url)
-    return raw_url
 
 
 class MyArgumentFormatter(argparse.HelpFormatter):

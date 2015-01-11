@@ -118,6 +118,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
         elif source == 'html5':
+            logging.warning('HTML5 video source is experimental and may not always work.')
             _, response = fetch_url('http://m.acg.tv/m/html5?aid=%(aid)s&page=%(pid)s' % {'aid': aid, 'pid': pid}, user_agent=USER_AGENT_PLAYER, cookie=cookie)
             response = json.loads(response.decode('utf-8', 'replace'))
             media_urls = [dict.get(response, 'src')]

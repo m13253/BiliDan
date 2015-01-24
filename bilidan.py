@@ -117,6 +117,19 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
+        elif source == 'flvcd':
+            req_args = {'kw': url}
+            if quality is not None:
+                if quality == 3:
+                    req_args['quality'] = 'high'
+                elif quality >= 4:
+                    req_args['quality'] = 'super'
+            _, response = fetch_url('http://www.flvcd.com/parse.php?'+urllib.parse.urlencode(req_args), user_agent = USER_AGENT_PLAYER)
+            resp_match = re.search('<input type="hidden" name="inf" value="([^"]+)"', response.decode('gbk', 'replace'))
+            if resp_match:
+                media_urls = resp_match.group(1).rstrip('|').split('|')
+            else:
+                media_urls = []
         elif source == 'html5':
             logging.warning('HTML5 video source is experimental and may not always work.')
             _, response = fetch_url('http://m.acg.tv/m/html5?aid=%(aid)s&page=%(pid)s' % {'aid': aid, 'pid': pid}, user_agent=USER_AGENT_PLAYER, cookie=cookie)
@@ -402,6 +415,7 @@ def main():
                                                'Available values:\n' +
                                                'default: Default source\n' +
                                                'overseas: CDN acceleration for users outside china\n' +
+                                               'flvcd: Video parsing service provided by FLVCD.com\n' +
                                                'html5: Low quality video provided by m.acg.tv for mobile users')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
@@ -414,7 +428,7 @@ def main():
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None
     source = args.source if args.source != 'default' else None
-    if source not in {None, 'overseas', 'html5'}:
+    if source not in {None, 'overseas', 'flvcd', 'html5'}:
         raise ValueError('invalid value specified for --source, see --help for more information')
     mpvflags = args.mpvflags.split()
     d2aflags = dict((i.split('=', 1) if '=' in i else [i, ''] for i in args.d2aflags.split(','))) if args.d2aflags else {}

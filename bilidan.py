@@ -137,6 +137,9 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             media_urls = [dict.get(response, 'src')]
             if not media_urls[0]:
                 media_urls = []
+            if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
+                logging.error('Failed to request HTML5 video source. Retrying.')
+                return get_media_urls(cid, fuck_you_bishi_mode=True)
         else:
             assert source in {None, 'overseas', 'html5'}
         if len(media_urls) == 0 or media_urls == ['http://static.hdslb.com/error.mp4']:

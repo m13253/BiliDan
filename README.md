@@ -19,6 +19,7 @@ Example
 ```
 ./bilidan.py http://www.bilibili.com/video/av899574/
 ./bilidan.py http://www.bilibili.com/video/av314/     # High density comments!
+./bilidan.py http://www.bilibili.com/video/av332732/index_7.html # Extreme density!
 ./bilidan.py http://www.bilibili.com/video/av297197/  # Even Toukome (advanced comments)!
 ```
 Use option `--source overseas` if your are outside China. And `--source html5`  to use the the experimental HTML5 API.

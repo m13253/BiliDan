@@ -13,6 +13,8 @@ Requirements
 - [FFmpeg](https://www.ffmpeg.org/) with ffprobe installed
 - [Danmaku2ASS](https://github.com/m13253/danmaku2ass), automatically installed
 
+Note that [Libav](https://www.libav.org/) does not work. See [why FFmpeg is preferred](https://github.com/mpv-player/mpv/wiki/FFmpeg-versus-Libav).
+
 Example
 -----
 

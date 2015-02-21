@@ -117,22 +117,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
-        elif source == 'flvcd':
-            req_args = {'kw': url}
-            if quality is not None:
-                if quality == 3:
-                    req_args['quality'] = 'high'
-                elif quality >= 4:
-                    req_args['quality'] = 'super'
-            _, response = fetch_url('http://www.flvcd.com/parse.php?'+urllib.parse.urlencode(req_args), user_agent = USER_AGENT_PLAYER)
-            resp_match = re.search('<input type="hidden" name="inf" value="([^"]+)"', response.decode('gbk', 'replace'))
-            if resp_match:
-                media_urls = resp_match.group(1).rstrip('|').split('|')
-            else:
-                media_urls = []
         elif source == 'html5':
+            req_args = {'aid': aid, 'page': pid}
             logging.warning('HTML5 video source is experimental and may not always work.')
-            _, response = fetch_url('http://m.acg.tv/m/html5?aid=%(aid)s&page=%(pid)s' % {'aid': aid, 'pid': pid}, user_agent=USER_AGENT_PLAYER, cookie=cookie)
+            _, response = fetch_url('http://m.acg.tv/m/html5?'+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
             response = json.loads(response.decode('utf-8', 'replace'))
             media_urls = [dict.get(response, 'src')]
             if not media_urls[0]:
@@ -140,8 +128,30 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Failed to request HTML5 video source. Retrying.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
+        elif source == 'flvcd':
+            req_args = {'kw': url}
+            if quality is not None:
+                if quality == 3:
+                    req_args['quality'] = 'high'
+                elif quality >= 4:
+                    req_args['quality'] = 'super'
+            _, response = fetch_url('http://www.flvcd.com/parse.php?'+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
+            resp_match = re.search('<input type="hidden" name="inf" value="([^"]+)"', response.decode('gbk', 'replace'))
+            if resp_match:
+                media_urls = resp_match.group(1).rstrip('|').split('|')
+            else:
+                media_urls = []
+        elif source == 'bilipr':
+            req_args = {'cid': cid}
+            quality_arg = '1080' if quality is not None and quality >= 2 else '720'
+            logging.warning('BilibiliPr video source is experimental and may not always work.')
+            resp_obj, response = fetch_url('http://pr.lolly.cc/P%s?%s' % (quality_arg, urllib.parse.urlencode(req_args)), user_agent=USER_AGENT_PLAYER)
+            if resp_obj.getheader('Content-Type', '').startswith('text/xml'):
+                media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+            else:
+                media_urls = []
         else:
-            assert source in {None, 'overseas', 'html5'}
+            assert source in {None, 'overseas', 'html5', 'flvcd', 'bilipr'}
         if len(media_urls) == 0 or media_urls == ['http://static.hdslb.com/error.mp4']:
             raise ValueError('Can not get valid media URLs.')
         return media_urls
@@ -304,7 +314,7 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
         req_headers['Cookie'] = cookie
     req = urllib.request.Request(url=url, headers=req_headers)
     response = urllib.request.urlopen(req, timeout=120)
-    content_encoding = response.info().get('Content-Encoding')
+    content_encoding = response.getheader('Content-Encoding')
     if content_encoding == 'gzip':
         data = gzip.GzipFile(fileobj=response).read()
     elif content_encoding == 'deflate':
@@ -431,7 +441,7 @@ def main():
         return 2
     quality = args.quality if args.quality is not None else 4 if args.hd else None
     source = args.source if args.source != 'default' else None
-    if source not in {None, 'overseas', 'flvcd', 'html5'}:
+    if source not in {None, 'overseas', 'html5', 'flvcd', 'bilipr'}:
         raise ValueError('invalid value specified for --source, see --help for more information')
     mpvflags = args.mpvflags.split()
     d2aflags = dict((i.split('=', 1) if '=' in i else [i, ''] for i in args.d2aflags.split(','))) if args.d2aflags else {}

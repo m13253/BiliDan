@@ -143,7 +143,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
                 media_urls = []
         elif source == 'bilipr':
             req_args = {'cid': cid}
-            quality_arg = '1080' if quality is not None and quality >= 2 else '720'
+            quality_arg = '1080' if quality is not None and quality >= 4 else '720'
             logging.warning('BilibiliPr video source is experimental and may not always work.')
             resp_obj, response = fetch_url('http://pr.lolly.cc/P%s?%s' % (quality_arg, urllib.parse.urlencode(req_args)), user_agent=USER_AGENT_PLAYER)
             if resp_obj.getheader('Content-Type', '').startswith('text/xml'):
@@ -423,7 +423,7 @@ def main():
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
-    parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 4 for HD')
+    parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 1 for the lowest, -q 4 for HD')
     parser.add_argument('-s', '--source', help='Specify the source of video provider.\n' +
                                                'Available values:\n' +
                                                'default: Default source\n' +

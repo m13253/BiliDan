@@ -50,8 +50,8 @@ import xml.dom.minidom
 import zlib
 
 
-USER_AGENT_PLAYER = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/36.0.1985.125 Safari/537.36'
-USER_AGENT_API = 'Biligrab-Danmaku2ASS Linux, Biligrab Engine/0.9x (sb@loli.con.sh)'
+USER_AGENT_PLAYER = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0.2) Gecko/20100101 Firefox/6.0.2 Fengfan/1.0'
+USER_AGENT_API = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0.2) Gecko/20100101 Firefox/6.0.2 Fengfan/1.0'
 APPKEY = '85eb6835b0a1034e'  # The same key as in original Biligrab
 APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one yourself if you need
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}

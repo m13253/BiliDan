@@ -371,7 +371,7 @@ def check_env(debug=False):
                 logging.debug('Detected mpv version: %s' % check_env.mpv_version)
                 break
         else:
-            log_or_raise('Can not detect mpv version.', debug=debug)
+            log_or_raise(RuntimeError('Can not detect mpv version.'), debug=debug)
             check_env.mpv_version = 'git-'
     except OSError as e:
         logging.error('Please install \'mpv\' as the media player.')

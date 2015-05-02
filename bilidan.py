@@ -230,7 +230,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         command_line = ['mpv', '--autofit', '950x540']
         if mpv_version_gte_0_6:
             command_line += ['--cache-file', 'TMP']
-        if increase_fps and mpv_version_gte_0_6:
+        if increase_fps and mpv_version_gte_0_6:  # Drop frames at vo side but not at decoder side to prevent A/V sync issues
             command_line += ['--framedrop', 'vo']
         command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
@@ -244,7 +244,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         if increase_fps:
             if mpv_version_gte_0_6:
                 command_line += ['--vf', 'lavfi="fps=fps=60:round=down"']
-            else:
+            else:  # Versions < 0.6 have an A/V sync related issue
                 command_line += ['--vf', 'lavfi="fps=fps=50:round=down"']
         command_line += mpvflags
         if is_playlist:

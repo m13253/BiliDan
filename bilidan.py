@@ -57,7 +57,7 @@ APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one your
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
-def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}):
 
     url_get_metadata = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -209,7 +209,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         comment_out.flush()
         return comment_out
 
-    def launch_player(video_metadata, media_urls, comment_out, is_playlist=False):
+    def launch_player(video_metadata, media_urls, comment_out, is_playlist=False, increase_fps=True):
         '''Launch MPV media player
 
         Arguments: video_metadata, media_urls, comment_out
@@ -221,12 +221,12 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
         logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
         logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
-        increase_fps = True
-        for i in mpvflags:
-            i = i.split('=', 1)
-            if 'vdpau' in i or 'vaapi' in i or 'vda' in i:
-                increase_fps = False
-                break
+        if increase_fps:  # If hardware decoding (without -copy suffix) is used, do not increase fps
+            for i in mpvflags:
+                i = i.split('=', 1)
+                if 'vdpau' in i or 'vaapi' in i or 'vda' in i:
+                    increase_fps = False
+                    break
         command_line = ['mpv', '--autofit', '950x540']
         if mpv_version_gte_0_6:
             command_line += ['--cache-file', 'TMP']
@@ -296,7 +296,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
     comment_out = convert_comments(video_metadata['cid'], video_size)
 
     logging.info('Launching media player...')
-    player_exit_code = launch_player(video_metadata, media_urls, comment_out)
+    player_exit_code = launch_player(video_metadata, media_urls, comment_out, increase_fps=not keep_fps)
     comment_out.close()
     return player_exit_code
 
@@ -432,6 +432,7 @@ def main():
                                                'html5: Low quality video provided by m.acg.tv for mobile users')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
+    parser.add_argument('--keep-fps', action='store_true', help='Use the same framerate as the video to animate comments, instead of increasing to 60 fps')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
     parser.add_argument('--d2aflags', '--danmaku2assflags', metavar='FLAGS', default='', help='Parameters passed to Danmaku2ASS, formed as \'option1=value1,option2=value2\'')
     parser.add_argument('url', metavar='URL', nargs='+', help='Bilibili video page URL (http://www.bilibili.com/video/av*/)')
@@ -448,7 +449,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

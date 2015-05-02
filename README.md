@@ -10,7 +10,7 @@ Requirements
 - [Python](https://www.python.org/) at least version 3.0
 - [mpv Media Player](http://mpv.io/), a fork of MPlayer with features
   Biligrab-Danmaku2ASS requires
-- [FFmpeg](https://www.ffmpeg.org/) with ffprobe installed
+- [FFmpeg](https://www.ffmpeg.org/) with ffprobe installed. [Do not use Libav](https://github.com/mpv-player/mpv/wiki/FFmpeg-versus-Libav/9fc3989d00b2df54f7bc92f5de8442fc223091a2).
 - [Danmaku2ASS](https://github.com/m13253/danmaku2ass), automatically installed
 
 Note that [Libav](https://www.libav.org/) does not work. See [why FFmpeg is preferred](https://github.com/mpv-player/mpv/wiki/FFmpeg-versus-Libav).

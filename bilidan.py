@@ -120,7 +120,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         elif source == 'html5':
             req_args = {'aid': aid, 'page': pid}
             logging.warning('HTML5 video source is experimental and may not always work.')
-            _, response = fetch_url('http://m.acg.tv/m/html5?'+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
+            _, response = fetch_url('http://www.bilibili.com/m/html5?'+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
             response = json.loads(response.decode('utf-8', 'replace'))
             media_urls = [dict.get(response, 'src')]
             if not media_urls[0]:

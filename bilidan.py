@@ -194,7 +194,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         '''
         _, resp_comment = fetch_url(url_get_comment % {'cid': cid}, cookie=cookie)
         comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
-        comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass')
+        comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass', delete=False)
         logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
         d2a_args = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6), 'text_opacity': 0.8, 'duration_marquee': min(max(6.75*video_size[0]/video_size[1]-4, 3.0), 8.0), 'duration_still': 5.0}, **d2aflags)
         for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration'), float)):
@@ -207,6 +207,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             log_or_raise(e, debug=debug)
             logging.error('Danmaku2ASS failed, comments are disabled.')
         comment_out.flush()
+        comment_out.close()  # Close the temporary file early to fix an issue related to Windows NT file sharing
         return comment_out
 
     def launch_player(video_metadata, media_urls, comment_out, is_playlist=False, increase_fps=True):
@@ -297,7 +298,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
 
     logging.info('Launching media player...')
     player_exit_code = launch_player(video_metadata, media_urls, comment_out, increase_fps=not keep_fps)
-    comment_out.close()
+
+    if player_exit_code == 0:
+        os.remove(comment_out.name)
+
     return player_exit_code
 
 

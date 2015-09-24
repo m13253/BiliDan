@@ -235,7 +235,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             command_line += ['--framedrop', 'vo']
         command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
-            command_line += ['--media-title', video_metadata.get('title', url)]
+            command_line += ['--force-media-title', video_metadata.get('title', url)]
         if is_playlist or len(media_urls) > 1:
             command_line += ['--merge-files']
         if mpv_version_gte_0_4:

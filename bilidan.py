@@ -218,7 +218,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         Return value: player_exit_code -> int
         '''
         mpv_version_master = tuple(check_env.mpv_version.split('-', 1)[0].split('.'))
-        mpv_version_gte_0_6 = mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+        mpv_version_gte_0_10 = mpv_version_master >= ('0', '10') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+        mpv_version_gte_0_6 = mpv_version_gte_0_10 or mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
         mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
         logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
         logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
@@ -235,7 +236,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             command_line += ['--framedrop', 'vo']
         command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
-            command_line += ['--media-title', video_metadata.get('title', url)]
+            if mpv_version_gte_0_10:
+                command_line += ['--force-media-title', video_metadata.get('title', url)]
+            else:
+                command_line += ['--media-title', video_metadata.get('title', url)]
         if is_playlist or len(media_urls) > 1:
             command_line += ['--merge-files']
         if mpv_version_gte_0_4:

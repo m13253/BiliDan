@@ -57,7 +57,7 @@ APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one your
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
-def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}):
+def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}, fakeip=None):
 
     url_get_metadata = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -112,7 +112,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
             if quality is not None:
                 req_args['quality'] = quality
             req_args['sign'] = bilibili_hash(req_args)
-            _, response = fetch_url(url_get_media+urllib.parse.urlencode(req_args), user_agent=user_agent, cookie=cookie)
+            _, response = fetch_url(url_get_media+urllib.parse.urlencode(req_args), user_agent=user_agent, cookie=cookie, fakeip=fakeip)
             media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
@@ -310,7 +310,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
     return player_exit_code
 
 
-def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
+def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None, fakeip=None):
     '''Fetch HTTP URL
 
     Arguments: url, user_agent, cookie
@@ -321,6 +321,9 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None):
     req_headers = {'User-Agent': user_agent, 'Accept-Encoding': 'gzip, deflate'}
     if cookie:
         req_headers['Cookie'] = cookie
+    if fakeip:
+        req_headers['X-Forwarded-For'] = fakeip
+        req_headers['Client-IP'] = fakeip
     req = urllib.request.Request(url=url, headers=req_headers)
     response = urllib.request.urlopen(req, timeout=120)
     content_encoding = response.getheader('Content-Encoding')
@@ -439,6 +442,7 @@ def main():
                                                'overseas: CDN acceleration for users outside china\n' +
                                                'flvcd: Video parsing service provided by FLVCD.com\n' +
                                                'html5: Low quality video provided by m.acg.tv for mobile users')
+    parser.add_argument('-f', '--fakeip', help='Fake ip for bypassing restrictions.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
     parser.add_argument('--keep-fps', action='store_true', help='Use the same framerate as the video to animate comments, instead of increasing to 60 fps')
@@ -455,10 +459,11 @@ def main():
         raise ValueError('invalid value specified for --source, see --help for more information')
     mpvflags = args.mpvflags.split()
     d2aflags = dict((i.split('=', 1) if '=' in i else [i, ''] for i in args.d2aflags.split(','))) if args.d2aflags else {}
+    fakeip = args.fakeip if args.fakeip else None
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags, fakeip=args.fakeip)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

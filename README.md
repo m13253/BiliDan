@@ -25,6 +25,7 @@ Example
 ./bilidan.py http://www.bilibili.com/video/av297197/  # Even Toukome (advanced comments)!
 ```
 Use option `--source overseas` if your are outside China. And `--source html5`  to use the the experimental HTML5 API.
+Use `--fakeip` if you can't get valid media URLs due to ip restrictions.
 
 
 Why Biligrab-Danmaku2ASS?
@@ -59,7 +60,7 @@ Tips
 - Use `--d2aflags 'text_opacity=0.8'` to set comment opacity.
 - Try to fast forward or rewind when streaming is stuck, or to tweak cache
   parameters of mpv.
-- For issue related to URL parsing (especially the experimental HTML5 API), 
+- For issue related to URL parsing (especially the experimental HTML5 API),
   please report directly to Biligrab, the upstream parser:
   https://github.com/cnbeining/Biligrab/issues
 

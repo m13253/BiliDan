@@ -71,12 +71,12 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
 
         Return value: (aid, pid)
         '''
-        regex = re.compile('http:/*[^/]+/video/av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
+        regex = re.compile('(http:/*[^/]+/video/)?av(\\d+)(/|/index.html|/index_(\\d+).html)?(\\?|#|$)')
         regex_match = regex.match(url)
         if not regex_match:
             raise ValueError('Invalid URL: %s' % url)
-        aid = regex_match.group(1)
-        pid = regex_match.group(3) or '1'
+        aid = regex_match.group(2)
+        pid = regex_match.group(4) or '1'
         return aid, pid
 
     def fetch_video_metadata(aid, pid):

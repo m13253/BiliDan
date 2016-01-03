@@ -58,7 +58,7 @@ APPSEC = '2ad42749773c441109bdc0191257a664'  # Do not abuse please, get one your
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
-def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}, fakeip=None):
+def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}, fakeip=None):
 
     url_get_metadata = 'http://api.bilibili.com/view?'
     url_get_comment = 'http://comment.bilibili.com/%(cid)s.xml'
@@ -300,12 +300,16 @@ def biligrab(url, *, debug=False, verbose=False, media=None, cookie=None, qualit
         video_size = (1920, 1080)
 
     logging.info('Loading comments...')
-    comment_out = convert_comments(video_metadata['cid'], video_size)
+    if comment is None:
+        comment_out = convert_comments(video_metadata['cid'], video_size)
+    else:
+        comment_out = open(comment, 'r')
+        comment_out.close()
 
     logging.info('Launching media player...')
     player_exit_code = launch_player(video_metadata, media_urls, comment_out, increase_fps=not keep_fps)
 
-    if player_exit_code == 0:
+    if comment is None and player_exit_code == 0:
         os.remove(comment_out.name)
 
     return player_exit_code
@@ -436,6 +440,7 @@ def main():
     parser.add_argument('-c', '--cookie', help='Import Cookie at bilibili.com, type document.cookie at JavaScript console to acquire it')
     parser.add_argument('-d', '--debug', action='store_true', help='Stop execution immediately when an error occures')
     parser.add_argument('-m', '--media', help='Specify local media file to play with remote comments')
+    parser.add_argument('--comment', help='Specify local ASS comment file to play with remote media')
     parser.add_argument('-q', '--quality', type=int, help='Specify video quality, -q 1 for the lowest, -q 4 for HD')
     parser.add_argument('-s', '--source', help='Specify the source of video provider.\n' +
                                                'Available values:\n' +
@@ -464,7 +469,7 @@ def main():
     retval = 0
     for url in args.url:
         try:
-            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags, fakeip=args.fakeip)
+            retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, comment=args.comment, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags, fakeip=args.fakeip)
         except OSError as e:
             logging.error(e)
             retval = retval or e.errno

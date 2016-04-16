@@ -364,7 +364,7 @@ def check_env(debug=False):
     try:
         import danmaku2ass
     except ImportError as e:
-        danmaku2ass_filename = os.path.abspath(os.path.join(__file__, '..', 'danmaku2ass.py'))
+        danmaku2ass_filename = os.path.abspath(os.path.join(os.path.realpath(__file__), '..', 'danmaku2ass.py'))
         logging.error('Automatically downloading \'danmaku2ass.py\'\n       from https://github.com/m13253/danmaku2ass\n       to %s' % danmaku2ass_filename)
         try:
             danmaku2ass_downloaded = fetch_url('https://github.com/m13253/danmaku2ass/raw/master/danmaku2ass.py')

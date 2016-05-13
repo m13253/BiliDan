@@ -41,6 +41,7 @@ import hashlib
 import io
 import logging
 import math
+import codecs
 import os
 import re
 import subprocess
@@ -51,10 +52,10 @@ import xml.dom.minidom
 import zlib
 
 
-USER_AGENT_PLAYER = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0.2) Gecko/20100101 Firefox/6.0.2 Fengfan/1.0'
-USER_AGENT_API = 'Mozilla/5.0 (Windows NT 6.1; WOW64; rv:6.0.2) Gecko/20100101 Firefox/6.0.2 Fengfan/1.0'
-APPKEY = '452d3958f048c02a'  # From some source
-APPSEC = ''  # We shall not release this from now
+USER_AGENT_PLAYER = 'Mozilla/5.0 BiliDroid/4.17.0 (bbcallen@gmail.com)'
+USER_AGENT_API = 'Mozilla/5.0 BiliDroid/4.17.0 (bbcallen@gmail.com)'
+APPKEY = 'p1o107428q337928'   # Unknown source
+APPSEC = 'rn85624qsps12q7pp7o2o3n94snp1s2p'    # Do not abuse please, get one yourself if you need
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
@@ -87,9 +88,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
 
         Return value: {'cid': cid, 'title': title}
         '''
-        req_args = {'type': 'json', 'appkey': APPKEY, 'id': aid, 'page': pid}
-        #req_args['sign'] = bilibili_hash(req_args)
-        req_args['sign'] = ''
+        req_args = {'type': 'json', 'appkey': codecs.decode(APPKEY,'rot13'), 'id': aid, 'page': pid}
+        req_args['sign'] = bilibili_hash(req_args)
         _, response = fetch_url(url_get_metadata+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
         try:
             response = dict(json.loads(response.decode('utf-8', 'replace')))
@@ -108,9 +108,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
 
         Return value: [media_urls]
         '''
+        second_app_key = 's3oo208o3q081qp8'
         if source in {None, 'overseas'}:
             user_agent = USER_AGENT_API if not fuck_you_bishi_mode else USER_AGENT_PLAYER
-            req_args = {'appkey': APPKEY, 'cid': cid}
+            req_args = {'appkey': codecs.decode(second_app_key,'rot13'), 'cid': cid}
             if quality is not None:
                 req_args['quality'] = quality
             #req_args['sign'] = bilibili_hash(req_args)
@@ -351,7 +352,7 @@ def bilibili_hash(args):
 
     Return value: hash_value -> str
     '''
-    return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+APPSEC).encode('utf-8')).hexdigest()  # Fuck you bishi
+    return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+codecs.decode(APPSEC,'rot13')).encode('utf-8')).hexdigest()  # Fuck you bishi
 
 
 def check_env(debug=False):

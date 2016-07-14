@@ -48,7 +48,6 @@ import subprocess
 import tempfile
 import urllib.parse
 import urllib.request
-import bs4
 import xml.dom.minidom
 import zlib
 
@@ -440,9 +439,29 @@ def preprocess_url(url):
     regex_match = regex.match(url)
     if not regex_match:
         return url
-    c = urllib.request.urlopen(url)
-    soup = bs4.BeautifulSoup(c.read(), 'html.parser')
-    result = soup.find(class_='v-av-link')['href']
+
+    # extract Bilibili url from raw HTML.
+    _, data = fetch_url(url)
+    # data = str(data)
+    data = data.decode('utf-8')
+    av_str_class_position = data.index('v-av-link')
+    aim_url_div = data[av_str_class_position - 57: av_str_class_position + 40]
+    # for basic url
+    match1 = re.search('(http://www.bilibili.com/video/av[0-9]+/)', aim_url_div)
+    result = match1.group(0)
+    # for episode number
+    title_content = data[data.index('<title>'): data.index('</title>')]
+    match2 = re.search('(第[0-9]+集)', title_content)
+    if match2 is not None:
+    	raw_number = match2.group(0)
+    	result += 'index_' + raw_number[1: -1] + '.html'
+    else:
+        # print('None')
+    	pass
+
+    # c = urllib.request.urlopen(url)
+    # soup = bs4.BeautifulSoup(c.read(), 'html.parser')
+    # result = soup.find(class_='v-av-link')['href']
     print(result)
     return result
 

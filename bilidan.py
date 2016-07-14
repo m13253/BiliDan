@@ -428,6 +428,44 @@ def log_or_raise(exception, debug=False):
         logging.error(str(exception))
 
 
+def preprocess_url(url):
+    """
+    Parse a readable Bilibili URL for method parse_url(url)
+    from a Bangumi URL(A new URL format in Bilibili, e.g. http://bangumi.bilibili.com/anime/v/80085)
+    :param url:
+    :return:
+    """
+    regex = re.compile('(http://bangumi.bilibili.com/anime/v/[0-9]+)')
+    regex_match = regex.match(url)
+    if not regex_match:
+        return url
+
+    # extract Bilibili url from raw HTML.
+    _, data = fetch_url(url)
+    # data = str(data)
+    data = data.decode('utf-8')
+    av_str_class_position = data.index('v-av-link')
+    aim_url_div = data[av_str_class_position - 57: av_str_class_position + 40]
+    # for basic url
+    match1 = re.search('(http://www.bilibili.com/video/av[0-9]+/)', aim_url_div)
+    result = match1.group(0)
+    # for episode number
+    title_content = data[data.index('<title>'): data.index('</title>')]
+    match2 = re.search('(第[0-9]+集)', title_content)
+    if match2 is not None:
+    	raw_number = match2.group(0)
+    	result += 'index_' + raw_number[1: -1] + '.html'
+    else:
+        # print('None')
+    	pass
+
+    # c = urllib.request.urlopen(url)
+    # soup = bs4.BeautifulSoup(c.read(), 'html.parser')
+    # result = soup.find(class_='v-av-link')['href']
+    # print(result)
+    return result
+
+
 class MyArgumentFormatter(argparse.HelpFormatter):
 
     def _split_lines(self, text, width):
@@ -470,7 +508,10 @@ def main():
     d2aflags = dict((i.split('=', 1) if '=' in i else [i, ''] for i in args.d2aflags.split(','))) if args.d2aflags else {}
     fakeip = args.fakeip if args.fakeip else None
     retval = 0
+
     for url in args.url:
+        # if url is a Bangumi format URL (e.g. http://bangumi.bilibili.com/anime/v/80085)
+        url = preprocess_url(url)
         try:
             retval = retval or biligrab(url, debug=args.debug, verbose=args.verbose, media=args.media, comment=args.comment, cookie=args.cookie, quality=quality, source=source, keep_fps=args.keep_fps, mpvflags=mpvflags, d2aflags=d2aflags, fakeip=args.fakeip)
         except OSError as e:

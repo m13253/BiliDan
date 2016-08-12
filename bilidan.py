@@ -73,6 +73,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
 
         Return value: (aid, pid)
         '''
+        if url.startswith('cid:'):
+            try:
+                return int(url[4:]), 'cid'
+            except ValueError('Invalid CID: %s' % url[4:])
         regex = re.compile('(?:http:/*[^/]+/(?:video/)?)?av(\\d+)(?:/|/index.html|/index_(\\d+).html)?(?:\\?|#|$)')
         regex_match = regex.match(url)
         if not regex_match:
@@ -283,7 +287,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
     aid, pid = parse_url(url)
 
     logging.info('Loading video info...')
-    video_metadata = fetch_video_metadata(aid, pid)
+    if pid != 'cid':
+        video_metadata = fetch_video_metadata(aid, pid)
+    else:
+        video_metadata = {'cid': aid, 'title': url}
     logging.info('Got video cid: %s' % video_metadata['cid'])
 
     logging.info('Loading video content...')

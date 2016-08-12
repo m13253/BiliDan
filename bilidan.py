@@ -76,7 +76,8 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
         if url.startswith('cid:'):
             try:
                 return int(url[4:]), 'cid'
-            except ValueError('Invalid CID: %s' % url[4:])
+            except ValueError:
+                raise ValueError('Invalid CID: %s' % url[4:])
         regex = re.compile('(?:http:/*[^/]+/(?:video/)?)?av(\\d+)(?:/|/index.html|/index_(\\d+).html)?(?:\\?|#|$)')
         regex_match = regex.match(url)
         if not regex_match:

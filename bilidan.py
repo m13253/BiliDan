@@ -52,10 +52,10 @@ import xml.dom.minidom
 import zlib
 
 
-USER_AGENT_PLAYER = 'Mozilla/5.0 BiliDroid/4.17.0 (bbcallen@gmail.com)'
-USER_AGENT_API = 'Mozilla/5.0 BiliDroid/4.17.0 (bbcallen@gmail.com)'
-APPKEY = 'p1o107428q337928'   # Unknown source
-APPSEC = 'rn85624qsps12q7pp7o2o3n94snp1s2p'    # Do not abuse please, get one yourself if you need
+USER_AGENT_PLAYER = 'Mozilla/5.0 BiliDroid/4.24.0 (bbcallen@gmail.com)'
+USER_AGENT_API = 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/34.0.1847.116 Safari/537.36'
+APPKEY = '1q8o6' + 'r7q4523' + '3436'   # Unknown source
+APPSEC = '560p52ppq288' + 'srq045859rq18' + 'ossq973'    # Do not abuse please, get one yourself if you need
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
 
@@ -113,16 +113,18 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
 
         Return value: [media_urls]
         '''
-        second_app_key = 's3oo208o3q081qp8'
         if source in {None, 'overseas'}:
             user_agent = USER_AGENT_API if not fuck_you_bishi_mode else USER_AGENT_PLAYER
-            req_args = {'appkey': codecs.decode(second_app_key,'rot13'), 'cid': cid}
+            req_args = {'cid': cid}
             if quality is not None:
                 req_args['quality'] = quality
-            #req_args['sign'] = bilibili_hash(req_args)
-            req_args['sign'] = ''
-            _, response = fetch_url(url_get_media+urllib.parse.urlencode(req_args), user_agent=user_agent, cookie=cookie, fakeip=fakeip)
+            else:
+                req_args['quality'] = None
+            _, response = fetch_url(url_get_media+andro_mock(req_args), user_agent=user_agent, cookie=cookie, fakeip=fakeip)
+            '''
             media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
+            '''
+            media_urls = [str(i['url']).strip() for i in json.loads(response.decode('utf-8'))['durl']]
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
@@ -211,7 +213,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
                 if k in d2aflags:
                     d2a_args[k] = j(d2aflags[k])
         try:
-            danmaku2ass.Danmaku2ASS([comment_in], 'Bilibili', comment_out, **d2a_args)
+            danmaku2ass.Danmaku2ASS(input_files=[comment_in], input_format='Bilibili', output_file=comment_out, **d2a_args)
         except Exception as e:
             log_or_raise(e, debug=debug)
             logging.error('Danmaku2ASS failed, comments are disabled.')
@@ -352,6 +354,38 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None, fakeip=None):
         data = response.read()
     return response, data
 
+
+def andro_mock(params):    
+    '''Simulate Android client
+    
+    Arguments: params
+    
+    Return value: request_string -> str
+    '''
+    import random
+    import base64
+    import collections
+    fake_hw = random.Random().randrange(start=0, stop=18000000000000000084).to_bytes(8, 'big').hex()
+    add_req_args = collections.OrderedDict({
+        'platform' : 'android',
+        '_device': 'android',
+        '_appver': '424000',
+        '_p': '1',
+        '_down': '0',
+        'cid': params['cid'],
+        '_tid': '0',
+        'otype': 'json',
+        '_hwid': fake_hw
+        })
+    if params['quality'] is not None:
+                add_req_args['quality'] = params['quality']
+    second_key = 'G&M40GdVRlW-v53V=yvd'
+    second_sec = 'W;bIwGB##4G&y29Vr64yF=H|}HZ(LjH8?gmHeoU`'
+    add_req_args['appkey'] = base64.b85decode(second_key)
+    req_args = add_req_args
+    add_req_args= collections.OrderedDict(sorted(req_args.items()))
+    req_args['sign'] = hashlib.md5(bytes(urllib.parse.urlencode(add_req_args) + base64.b85decode(second_sec).decode('utf-8'), 'utf-8')).hexdigest()
+    return urllib.parse.urlencode(req_args)
 
 def bilibili_hash(args):
     '''Calculate API signature hash

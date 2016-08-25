@@ -228,10 +228,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
 
         Return value: player_exit_code -> int
         '''
-        mpv_version_master = tuple(check_env.mpv_version.split('-', 1)[0].split('.'))
-        mpv_version_gte_0_10 = mpv_version_master >= ('0', '10') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 3) or mpv_version_master[0] == 'git'
-        mpv_version_gte_0_6 = mpv_version_gte_0_10 or mpv_version_master >= ('0', '6') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
-        mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= ('0', '4') or (len(mpv_version_master) >= 2 and len(mpv_version_master[1]) >= 2) or mpv_version_master[0] == 'git'
+        mpv_version_master = tuple(int(i) if i.isdigit() else float('inf') for i in check_env.mpv_version.split('-', 1)[0].split('.'))
+        mpv_version_gte_0_10 = mpv_version_master >= (0, 10)
+        mpv_version_gte_0_6 = mpv_version_gte_0_10 or mpv_version_master >= (0, 6)
+        mpv_version_gte_0_4 = mpv_version_gte_0_6 or mpv_version_master >= (0, 4)
         logging.debug('Compare mpv version: %s %s 0.10' % (check_env.mpv_version, '>=' if mpv_version_gte_0_10 else '<'))
         logging.debug('Compare mpv version: %s %s 0.6' % (check_env.mpv_version, '>=' if mpv_version_gte_0_6 else '<'))
         logging.debug('Compare mpv version: %s %s 0.4' % (check_env.mpv_version, '>=' if mpv_version_gte_0_4 else '<'))
@@ -355,11 +355,11 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None, fakeip=None):
     return response, data
 
 
-def andro_mock(params):    
+def andro_mock(params):
     '''Simulate Android client
-    
+
     Arguments: params
-    
+
     Return value: request_string -> str
     '''
     import random

@@ -124,7 +124,10 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
             '''
             media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
             '''
-            media_urls = [str(i['url']).strip() for i in json.loads(response.decode('utf-8'))['durl']]
+            json_obj = json.loads(response.decode('utf-8'))
+            if json_obj['result'] != 'suee':  # => Not Success
+                raise ValueError('Server returned an error: %s (%s)' % (json_obj['result'], json_obj['code']))
+            media_urls = [str(i['url']).strip() for i in json_obj['durl']]
             if not fuck_you_bishi_mode and media_urls == ['http://static.hdslb.com/error.mp4']:
                 logging.error('Detected User-Agent block. Switching to fuck-you-bishi mode.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
@@ -213,7 +216,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
                 if k in d2aflags:
                     d2a_args[k] = j(d2aflags[k])
         try:
-            danmaku2ass.Danmaku2ASS(input_files=[comment_in], input_format='Bilibili', output_file=comment_out, **d2a_args)
+            danmaku2ass.Danmaku2ASS(input_files=[comment_in], output_file=comment_out, **d2a_args)
         except Exception as e:
             log_or_raise(e, debug=debug)
             logging.error('Danmaku2ASS failed, comments are disabled.')
@@ -365,6 +368,12 @@ def andro_mock(params):
     import random
     import base64
     import collections
+    our_lvl = 412
+    _, api_response = fetch_url('http://app.bilibili.com/mdata/android3/android3.ver', user_agent=USER_AGENT_API)
+    api_lvl = int(json.loads(api_response.decode('utf-8'))['upgrade']['ver'])
+    logging.debug('Our simulated API level: %s, latest API level: %s' % (our_lvl, api_lvl))
+    if api_lvl > our_lvl:
+        logging.warning('Bilibili API server indicates the API protocol has been updated, the extraction may not work!')
     fake_hw = random.Random().randrange(start=0, stop=18000000000000000084).to_bytes(8, 'big').hex()
     add_req_args = collections.OrderedDict({
         'platform' : 'android',

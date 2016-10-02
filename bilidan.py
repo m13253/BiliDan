@@ -216,7 +216,7 @@ def biligrab(url, *, debug=False, verbose=False, media=None, comment=None, cooki
                 if k in d2aflags:
                     d2a_args[k] = j(d2aflags[k])
         try:
-            danmaku2ass.Danmaku2ASS(input_files=[comment_in], output_file=comment_out, **d2a_args)
+            danmaku2ass.Danmaku2ASS(input_files=[comment_in], input_format='Bilibili', output_file=comment_out, **d2a_args)
         except Exception as e:
             log_or_raise(e, debug=debug)
             logging.error('Danmaku2ASS failed, comments are disabled.')

@@ -3,6 +3,16 @@ Biligrab-Danmaku2ASS
 
 Play videos on Bilibili.com with MPV and Danmaku2ASS
 
+End-of-life notice
+------------------
+
+Note: This project is not maintained anymore, and is not guaranteed to work. I will not add new features in predictable future. For any need of improving or fixing, please send me a pull request for me to merge your code in. Thank you for your long-time support.
+
+注：本项目已经停止维护，不保证能用。在可以预见的将来，我也不会再加入新的功能。如果有改进、修复的需求，请发 Pull Request 给我，我会把你的代码合并进来。一直以来，谢谢大家的支持了。
+
+注︰ 此專案不會再繼續維持，不能保證工作。我不會在可預見的將來添加新功能。如果有任何改進、修復的需要，請給我發 Pull Request，我會合併你的程式碼。一直以來，謝謝大家的支援了。
+
+注：このプロジェクトをメインテインしていません、動作は保証されません。予測可能な将来に、私は新しい機能を追加しません。改善や修正する必要がある場合、あなたのコードをマージするために、Pull Request を送信してください。いつもありがとうございました。
 
 Requirements
 ------------

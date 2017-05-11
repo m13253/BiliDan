@@ -404,7 +404,7 @@ def andro_mock(tls, params):
     logging.debug('Our simulated API level: %s, latest API level: %s' % (our_lvl, api_lvl))
     if api_lvl > our_lvl:
         logging.warning('Bilibili API server indicates the API protocol has been updated, the extraction may not work!')
-    fake_hw = random.Random().randrange(start=0, stop=18000000000000000084).to_bytes(8, 'big').hex()
+    fake_hw = codecs.encode(random.Random().randrange(start=0, stop=18000000000000000084).to_bytes(8, 'big'), 'hex_codec')
     add_req_args = collections.OrderedDict({
         'platform' : 'android',
         '_device': 'android',

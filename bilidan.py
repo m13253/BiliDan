@@ -58,8 +58,10 @@ APPKEY = '1q8o6' + 'r7q4523' + '3436'   # Unknown source
 APPSEC = '560p52ppq288' + 'srq045859rq18' + 'ossq973'    # Do not abuse please, get one yourself if you need
 BILIGRAB_HEADER = {'User-Agent': USER_AGENT_API, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache'}
 
+
 def tlsify(url):
     return re.sub(r'http', 'https', url)
+
 
 def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=None, cookie=None, quality=None, source=None, keep_fps=False, mpvflags=[], d2aflags={}, fakeip=None):
 
@@ -70,12 +72,10 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
     else:
         url_get_media = 'http://interface.bilibili.com/playurl?'
 
-   
-
     if url.startswith('https:'):
         tls = True
-    
-    if tls == True:
+
+    if tls:
         logging.info('TLS is enabled.')
         url_get_metadata = tlsify(url_get_metadata)
         url_get_comment = tlsify(url_get_comment)
@@ -106,14 +106,14 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
 
         Return value: {'cid': cid, 'title': title}
         '''
-        req_args = {'type': 'json', 'appkey': codecs.decode(APPKEY,'rot13'), 'id': aid, 'page': pid}
+        req_args = {'type': 'json', 'appkey': codecs.decode(APPKEY, 'rot13'), 'id': aid, 'page': pid}
         req_args['sign'] = bilibili_hash(req_args)
-        _, response = fetch_url(url_get_metadata+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
+        _, response = fetch_url(url_get_metadata + urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
         # A naive fix (judge if it is -404, I choose '-' :)
         if(response[8] == 45):
-            req_args = {'type': 'json', 'appkey': codecs.decode(APPKEY,'rot13'), 'id': aid, 'page': 1}
+            req_args = {'type': 'json', 'appkey': codecs.decode(APPKEY, 'rot13'), 'id': aid, 'page': 1}
             req_args['sign'] = bilibili_hash(req_args)
-            _, response = fetch_url(url_get_metadata+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
+            _, response = fetch_url(url_get_metadata + urllib.parse.urlencode(req_args), user_agent=USER_AGENT_API, cookie=cookie)
         try:
             response = dict(json.loads(response.decode('utf-8', 'replace')))
         except (TypeError, ValueError):
@@ -138,7 +138,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
                 req_args['quality'] = quality
             else:
                 req_args['quality'] = None
-            _, response = fetch_url(url_get_media+andro_mock(tls, req_args), user_agent=user_agent, cookie=cookie, fakeip=fakeip)
+            _, response = fetch_url(url_get_media + andro_mock(tls, req_args), user_agent=user_agent, cookie=cookie, fakeip=fakeip)
             '''
             media_urls = [str(k.wholeText).strip() for i in xml.dom.minidom.parseString(response.decode('utf-8', 'replace')).getElementsByTagName('durl') for j in i.getElementsByTagName('url')[:1] for k in j.childNodes if k.nodeType == 4]
             '''
@@ -153,9 +153,9 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
             req_args = {'aid': aid, 'page': pid}
             logging.warning('HTML5 video source is experimental and may not always work.')
             h5prefix = 'http://www.bilibili.com/m/html5?'
-            if tls == True:
+            if tls:
                 h5prefix = tlsify(h5prefix)
-            _, response = fetch_url(h5prefix+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
+            _, response = fetch_url(h5prefix + urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
             response = json.loads(response.decode('utf-8', 'replace'))
             media_urls = [dict.get(response, 'src')]
             if not media_urls[0]:
@@ -164,7 +164,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
                 logging.error('Failed to request HTML5 video source. Retrying.')
                 return get_media_urls(cid, fuck_you_bishi_mode=True)
         elif source == 'flvcd':
-            if tls == True:
+            if tls:
                 logging.warning('Source flvcd is used. Some traffic is not protected by TLS.')
             req_args = {'kw': url}
             if quality is not None:
@@ -172,14 +172,14 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
                     req_args['quality'] = 'high'
                 elif quality >= 4:
                     req_args['quality'] = 'super'
-            _, response = fetch_url('http://www.flvcd.com/parse.php?'+urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
+            _, response = fetch_url('http://www.flvcd.com/parse.php?' + urllib.parse.urlencode(req_args), user_agent=USER_AGENT_PLAYER)
             resp_match = re.search('<input type="hidden" name="inf" value="([^"]+)"', response.decode('gbk', 'replace'))
             if resp_match:
                 media_urls = resp_match.group(1).rstrip('|').split('|')
             else:
                 media_urls = []
         elif source == 'bilipr':
-            if tls == True:
+            if tls:
                 logging.warning('Source bilipr is used. Some traffic is not protected by TLS.')
             req_args = {'cid': cid}
             quality_arg = '1080' if quality is not None and quality >= 4 else '720'
@@ -193,7 +193,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
             assert source in {None, 'overseas', 'html5', 'flvcd', 'bilipr'}
         if len(media_urls) == 0 or media_urls == ['http://static.hdslb.com/error.mp4']:
             raise ValueError('Can not get valid media URLs.')
-        if tls == True:
+        if tls:
             media_urls = [tlsify(u) for u in media_urls]
         return media_urls
 
@@ -219,7 +219,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
                 return 0, 0
             width, height, widthxheight = 0, 0, 0
             for stream in dict.get(ffprobe_output, 'streams') or []:
-                if dict.get(stream, 'width')*dict.get(stream, 'height') > widthxheight:
+                if dict.get(stream, 'width') * dict.get(stream, 'height') > widthxheight:
                     width, height = dict.get(stream, 'width'), dict.get(stream, 'height')
             return width, height
         except Exception as e:
@@ -237,7 +237,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
         comment_in = io.StringIO(resp_comment.decode('utf-8', 'replace'))
         comment_out = tempfile.NamedTemporaryFile(mode='w', encoding='utf-8-sig', newline='\r\n', prefix='tmp-danmaku2ass-', suffix='.ass', delete=False)
         logging.info('Invoking Danmaku2ASS, converting to %s' % comment_out.name)
-        d2a_args = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1]/21.6), 'text_opacity': 0.8, 'duration_marquee': min(max(6.75*video_size[0]/video_size[1]-4, 3.0), 8.0), 'duration_still': 5.0}, **d2aflags)
+        d2a_args = dict({'stage_width': video_size[0], 'stage_height': video_size[1], 'font_face': 'SimHei', 'font_size': math.ceil(video_size[1] / 21.6), 'text_opacity': 0.8, 'duration_marquee': min(max(6.75 * video_size[0] / video_size[1] - 4, 3.0), 8.0), 'duration_still': 5.0}, **d2aflags)
         for i, j in ((('stage_width', 'stage_height', 'reserve_blank'), int), (('font_size', 'text_opacity', 'comment_duration', 'duration_still', 'duration_marquee'), float)):
             for k in i:
                 if k in d2aflags:
@@ -276,7 +276,7 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
             command_line += ['--cache-file', 'TMP']
         if increase_fps and mpv_version_gte_0_6:  # Drop frames at vo side but not at decoder side to prevent A/V sync issues
             command_line += ['--framedrop', 'vo']
-        command_line += ['--http-header-fields', 'User-Agent: '+USER_AGENT_PLAYER.replace(',', '\\,')]
+        command_line += ['--http-header-fields', 'User-Agent: ' + USER_AGENT_PLAYER.replace(',', '\\,')]
         if mpv_version_gte_0_6:
             if mpv_version_gte_0_10:
                 command_line += ['--force-media-title', video_metadata.get('title', url)]
@@ -331,13 +331,13 @@ def biligrab(url, *, debug=False, verbose=False, tls=False, media=None, comment=
         media_urls = get_media_urls(video_metadata['cid'])
     else:
         media_urls = [media]
-    logging.info('Got media URLs:'+''.join(('\n      %d: %s' % (i+1, j) for i, j in enumerate(media_urls))))
+    logging.info('Got media URLs:' + ''.join(('\n      %d: %s' % (i + 1, j) for i, j in enumerate(media_urls))))
 
     logging.info('Determining video resolution...')
     video_size = get_video_size(media_urls)
     logging.info('Video resolution: %sx%s' % video_size)
     if video_size[0] > 0 and video_size[1] > 0:
-        video_size = (video_size[0]*1080/video_size[1], 1080)  # Simply fix ASS resolution to 1080p
+        video_size = (video_size[0] * 1080 / video_size[1], 1080)  # Simply fix ASS resolution to 1080p
     else:
         log_or_raise(ValueError('Can not get video size. Comments may be wrongly positioned.'), debug=debug)
         video_size = (1920, 1080)
@@ -379,7 +379,7 @@ def fetch_url(url, *, user_agent=USER_AGENT_PLAYER, cookie=None, fakeip=None):
         data = gzip.GzipFile(fileobj=response).read()
     elif content_encoding == 'deflate':
         decompressobj = zlib.decompressobj(-zlib.MAX_WBITS)
-        data = decompressobj.decompress(response.read())+decompressobj.flush()
+        data = decompressobj.decompress(response.read()) + decompressobj.flush()
     else:
         data = response.read()
     return response, data
@@ -397,7 +397,7 @@ def andro_mock(tls, params):
     import collections
     our_lvl = 412
     url_andr3 = 'http://app.bilibili.com/mdata/android3/android3.ver'
-    if tls == True:
+    if tls:
         url_andr3 = tlsify(url_andr3)
     _, api_response = fetch_url(url_andr3, user_agent=USER_AGENT_API)
     api_lvl = int(json.loads(api_response.decode('utf-8'))['upgrade']['ver'])
@@ -406,7 +406,7 @@ def andro_mock(tls, params):
         logging.warning('Bilibili API server indicates the API protocol has been updated, the extraction may not work!')
     fake_hw = codecs.encode(random.Random().randrange(start=0, stop=18000000000000000084).to_bytes(8, 'big'), 'hex_codec')
     add_req_args = collections.OrderedDict({
-        'platform' : 'android',
+        'platform': 'android',
         '_device': 'android',
         '_appver': '424000',
         '_p': '1',
@@ -415,16 +415,17 @@ def andro_mock(tls, params):
         '_tid': '0',
         'otype': 'json',
         '_hwid': fake_hw
-        })
+    })
     if params['quality'] is not None:
-                add_req_args['quality'] = params['quality']
+        add_req_args['quality'] = params['quality']
     second_key = 'G&M40GdVRlW-v53V=yvd'
     second_sec = 'W;bIwGB##4G&y29Vr64yF=H|}HZ(LjH8?gmHeoU`'
     add_req_args['appkey'] = base64.b85decode(second_key)
     req_args = add_req_args
-    add_req_args= collections.OrderedDict(sorted(req_args.items()))
+    add_req_args = collections.OrderedDict(sorted(req_args.items()))
     req_args['sign'] = hashlib.md5(bytes(urllib.parse.urlencode(add_req_args) + base64.b85decode(second_sec).decode('utf-8'), 'utf-8')).hexdigest()
     return urllib.parse.urlencode(req_args)
+
 
 def bilibili_hash(args):
     '''Calculate API signature hash
@@ -433,7 +434,7 @@ def bilibili_hash(args):
 
     Return value: hash_value -> str
     '''
-    return hashlib.md5((urllib.parse.urlencode(sorted(args.items()))+codecs.decode(APPSEC,'rot13')).encode('utf-8')).hexdigest()  # Fuck you bishi
+    return hashlib.md5((urllib.parse.urlencode(sorted(args.items())) + codecs.decode(APPSEC, 'rot13')).encode('utf-8')).hexdigest()  # Fuck you bishi
 
 
 def check_env(debug=False):
@@ -497,7 +498,7 @@ def check_env(debug=False):
 def log_command(command_line):
     '''Log the command line to be executed, escaping correctly
     '''
-    logging.debug('Executing: '+' '.join('\''+i+'\'' if ' ' in i or '?' in i or '&' in i or '"' in i else i for i in command_line))
+    logging.debug('Executing: ' + ' '.join('\'' + i + '\'' if ' ' in i or '?' in i or '&' in i or '"' in i else i for i in command_line))
 
 
 def log_or_raise(exception, debug=False):
@@ -534,11 +535,11 @@ def preprocess_url(url):
     title_content = data[data.index('<title>'): data.index('</title>')]
     match2 = re.search('(第[0-9]+集)', title_content)
     if match2 is not None:
-    	raw_number = match2.group(0)
-    	result += 'index_' + raw_number[1: -1] + '.html'
+        raw_number = match2.group(0)
+        result += 'index_' + raw_number[1: -1] + '.html'
     else:
         # print('None')
-    	pass
+        pass
 
     # c = urllib.request.urlopen(url)
     # soup = bs4.BeautifulSoup(c.read(), 'html.parser')
@@ -573,7 +574,7 @@ def main():
     parser.add_argument('-f', '--fakeip', help='Fake ip for bypassing restrictions.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Print more debugging information')
     parser.add_argument('--hd', action='store_true', help='Shorthand for -q 4')
-    parser.add_argument('-t', '--tls', action='store_true', help='force to enable TLS on ALL http transaction,\n'+
+    parser.add_argument('-t', '--tls', action='store_true', help='force to enable TLS on ALL http transaction,\n' +
                                                                  'useful when using \'cid:...\' syntax as url')
     parser.add_argument('--keep-fps', action='store_true', help='Use the same framerate as the video to animate comments, instead of increasing to 60 fps')
     parser.add_argument('--mpvflags', metavar='FLAGS', default='', help='Parameters passed to mpv, formed as \'--option1=value1 --option2=value2\'')
